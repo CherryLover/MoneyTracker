@@ -1,0 +1,14 @@
+-- 通用 KV 偏好表（主题、隐私开关、当前月份选择等）
+CREATE TABLE Preference (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+get:
+SELECT value FROM Preference WHERE key = :key;
+
+set:
+INSERT OR REPLACE INTO Preference(key, value) VALUES (:key, :value);
+
+deleteByKey:
+DELETE FROM Preference WHERE key = :key;

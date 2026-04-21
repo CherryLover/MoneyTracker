@@ -48,14 +48,14 @@ fun AutomationScreen(onBack: () -> Unit) {
             title = "自动记账",
             onBack = onBack,
             right = {
-                Text("新建", color = c.accent, fontSize = 13.sp)
+                Text("新建", color = c.accent, fontSize = 15.sp)
             },
         )
 
         Text(
             "按时间规则自动生成记录，适合工资、房租、订阅等固定支出收入。",
             color = c.text2,
-            fontSize = 12.sp,
+            fontSize = 14.sp,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 10.dp),
         )
 
@@ -70,7 +70,7 @@ fun AutomationScreen(onBack: () -> Unit) {
         Text(
             "支持的触发规则",
             color = c.text3,
-            fontSize = 11.sp,
+            fontSize = 13.sp,
             modifier = Modifier.padding(start = 20.dp, top = 6.dp, bottom = 4.dp),
         )
         Column(
@@ -100,7 +100,7 @@ private fun RuleCard(r: AutoRule) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(r.name, color = c.text, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(r.name, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     HSpace(6.dp)
                     Box(
                         Modifier
@@ -110,7 +110,7 @@ private fun RuleCard(r: AutoRule) {
                         Text(
                             if (r.type == RecordType.Expense) "支出" else "收入",
                             color = c.text2,
-                            fontSize = 10.sp,
+                            fontSize = 12.sp,
                         )
                     }
                 }
@@ -118,7 +118,7 @@ private fun RuleCard(r: AutoRule) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(LineIcons.Repeat, null, tint = c.text2, modifier = Modifier.size(10.dp))
                     HSpace(4.dp)
-                    Text(r.rule, color = c.text2, fontSize = 11.5.sp)
+                    Text(r.rule, color = c.text2, fontSize = 13.sp)
                 }
             }
             ThemedSwitch(on = r.enabled)
@@ -128,11 +128,11 @@ private fun RuleCard(r: AutoRule) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(c.hairline))
         VSpace(10.dp)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("${r.cat} · ${r.account}", color = c.text3, fontSize = 11.sp, modifier = Modifier.weight(1f))
+            Text("${r.cat} · ${r.account}", color = c.text3, fontSize = 13.sp, modifier = Modifier.weight(1f))
             Text(
-                text = (if (r.type == RecordType.Income) "+" else "−") + "¥" + formatThousands(r.amount),
+                text = (if (r.type == RecordType.Income) "+" else "−") + "¥" + formatThousands(r.amount.toLong()),
                 color = if (r.type == RecordType.Income) c.income else c.expense,
-                fontSize = 15.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Medium,
             )
         }
@@ -153,9 +153,9 @@ private fun RuleTypeRow(icon: ImageVector, title: String, desc: String) {
         Icon(icon, null, tint = c.text2, modifier = Modifier.size(15.dp))
         HSpace(10.dp)
         Column(Modifier.weight(1f)) {
-            Text(title, color = c.text, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Text(title, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             VSpace(1.dp)
-            Text(desc, color = c.text3, fontSize = 11.sp)
+            Text(desc, color = c.text3, fontSize = 13.sp)
         }
     }
 }

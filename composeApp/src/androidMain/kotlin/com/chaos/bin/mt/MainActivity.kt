@@ -6,14 +6,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import com.chaos.bin.mt.db.DatabaseFactory
+import com.chaos.bin.mt.di.AppContainer
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        val container = AppContainer(DatabaseFactory(applicationContext).create())
         setContent {
-            App()
+            App(container)
         }
     }
 }
@@ -21,5 +24,5 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
-    App()
+    // 预览里不接真实 DB
 }

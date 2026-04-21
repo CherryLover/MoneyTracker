@@ -1,0 +1,30 @@
+-- 小类（属于某个大类）
+CREATE TABLE SubCategory (
+    id TEXT NOT NULL PRIMARY KEY,
+    category_id TEXT NOT NULL REFERENCES Category(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    privacy INTEGER NOT NULL DEFAULT 0,
+    sort_index INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+);
+
+CREATE INDEX subcat_category ON SubCategory(category_id, sort_index);
+
+selectByCategory:
+SELECT * FROM SubCategory WHERE category_id = :category_id ORDER BY sort_index, created_at;
+
+selectById:
+SELECT * FROM SubCategory WHERE id = :id;
+
+insert:
+INSERT INTO SubCategory(id, category_id, name, privacy, sort_index, created_at)
+VALUES (:id, :category_id, :name, :privacy, :sort_index, :created_at);
+
+update:
+UPDATE SubCategory SET name = :name, privacy = :privacy WHERE id = :id;
+
+updateSortIndex:
+UPDATE SubCategory SET sort_index = :sort_index WHERE id = :id;
+
+deleteById:
+DELETE FROM SubCategory WHERE id = :id;

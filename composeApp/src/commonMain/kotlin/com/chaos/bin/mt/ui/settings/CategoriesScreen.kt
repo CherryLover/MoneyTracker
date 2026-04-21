@@ -84,7 +84,7 @@ fun CategoriesScreen(onBack: () -> Unit) {
                     Text(
                         label,
                         color = if (active) c.bg else c.text2,
-                        fontSize = 13.sp,
+                        fontSize = 15.sp,
                     )
                 }
             }
@@ -124,12 +124,12 @@ fun CategoriesScreen(onBack: () -> Unit) {
                                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text(cat.emoji, fontSize = 16.sp)
+                                Text(cat.emoji, fontSize = 18.sp)
                                 HSpace(8.dp)
                                 Text(
                                     cat.name,
                                     color = if (active) c.text else c.text2,
-                                    fontSize = 13.sp,
+                                    fontSize = 15.sp,
                                     fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -151,7 +151,7 @@ fun CategoriesScreen(onBack: () -> Unit) {
                         ) {
                             Icon(LineIcons.Plus, null, tint = c.text3, modifier = Modifier.size(14.dp))
                             HSpace(8.dp)
-                            Text("新建", color = c.text3, fontSize = 12.sp)
+                            Text("新建", color = c.text3, fontSize = 14.sp)
                         }
                     }
                 }
@@ -171,10 +171,10 @@ fun CategoriesScreen(onBack: () -> Unit) {
                     Text(
                         "${current.name} 的小类 · ${current.subs.size}",
                         color = c.text3,
-                        fontSize = 11.sp,
+                        fontSize = 13.sp,
                         modifier = Modifier.weight(1f),
                     )
-                    Text("排序", color = c.accent, fontSize = 11.sp)
+                    Text("排序", color = c.accent, fontSize = 13.sp)
                 }
 
                 LazyColumn(Modifier.weight(1f)) {
@@ -187,7 +187,7 @@ fun CategoriesScreen(onBack: () -> Unit) {
                         ) {
                             Icon(LineIcons.Grip, null, tint = c.text3, modifier = Modifier.size(14.dp))
                             HSpace(10.dp)
-                            Text(sub.name, color = c.text, fontSize = 13.5.sp, modifier = Modifier.weight(1f))
+                            Text(sub.name, color = c.text, fontSize = 15.sp, modifier = Modifier.weight(1f))
                             if (sub.privacy) {
                                 Row(
                                     Modifier
@@ -197,7 +197,7 @@ fun CategoriesScreen(onBack: () -> Unit) {
                                     horizontalArrangement = Arrangement.spacedBy(3.dp),
                                 ) {
                                     Icon(LineIcons.Lock, null, tint = c.text3, modifier = Modifier.size(9.dp))
-                                    Text("隐私", color = c.text3, fontSize = 10.sp)
+                                    Text("隐私", color = c.text3, fontSize = 12.sp)
                                 }
                                 HSpace(8.dp)
                             }
@@ -212,7 +212,7 @@ fun CategoriesScreen(onBack: () -> Unit) {
                         ) {
                             Icon(LineIcons.Plus, null, tint = c.accent, modifier = Modifier.size(14.dp))
                             HSpace(8.dp)
-                            Text("添加小类", color = c.accent, fontSize = 13.sp)
+                            Text("添加小类", color = c.accent, fontSize = 15.sp)
                         }
                     }
                 }

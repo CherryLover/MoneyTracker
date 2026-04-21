@@ -39,7 +39,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         Text(
             "遮蔽敏感金额和分类，保护你在公共场合的隐私。",
             color = c.text2,
-            fontSize = 12.sp,
+            fontSize = 14.sp,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
         )
 
@@ -48,7 +48,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
             Row2(title = "进入 App 时遮蔽", desc = "每次打开自动隐藏金额") { ThemedSwitch(on = false) }
             Row2(title = "打码样式") {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("¥ •••••", color = c.text2, fontSize = 12.sp)
+                    Text("¥ •••••", color = c.text2, fontSize = 14.sp)
                     HSpace(4.dp)
                     Icon(LineIcons.ChevR, null, tint = c.text2, modifier = Modifier.size(12.dp))
                 }
@@ -73,7 +73,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(LineIcons.Lock, null, tint = c.text3, modifier = Modifier.size(11.dp))
                             HSpace(5.dp)
-                            Text(n, color = c.text, fontSize = 13.5.sp)
+                            Text(n, color = c.text, fontSize = 15.sp)
                         }
                     },
                     desc = sub,
@@ -101,7 +101,7 @@ private fun Group(
         Text(
             title,
             color = c.text3,
-            fontSize = 11.sp,
+            fontSize = 13.sp,
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp, bottom = 6.dp),
         )
         Column(
@@ -117,7 +117,7 @@ private fun Group(
             Text(
                 desc,
                 color = c.text3,
-                fontSize = 11.sp,
+                fontSize = 13.sp,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp),
             )
         }
@@ -133,7 +133,7 @@ private fun Row2(
     Row2(
         titleContent = {
             val c = LocalAppColors.current
-            Text(title, color = c.text, fontSize = 13.5.sp)
+            Text(title, color = c.text, fontSize = 15.sp)
         },
         desc = desc,
         right = right,
@@ -158,7 +158,7 @@ private fun Row2(
                 titleContent()
                 if (desc != null) {
                     VSpace(2.dp)
-                    Text(desc, color = c.text3, fontSize = 11.sp)
+                    Text(desc, color = c.text3, fontSize = 13.sp)
                 }
             }
             HSpace(10.dp)

@@ -1,0 +1,56 @@
+-- 自动记账规则
+-- trigger_type: 0 = weekly, 1 = monthlyOnDay, 2 = monthlyNthWeekday
+-- trigger_config: JSON blob（具体字段由客户端解释）
+CREATE TABLE AutoRule (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    kind INTEGER NOT NULL,
+    amount_cents INTEGER NOT NULL,
+    category_id TEXT NOT NULL REFERENCES Category(id),
+    sub_category_id TEXT REFERENCES SubCategory(id),
+    account_id TEXT NOT NULL REFERENCES Account(id),
+    note TEXT NOT NULL DEFAULT '',
+    trigger_type INTEGER NOT NULL,
+    trigger_config TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    last_fired_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM AutoRule ORDER BY created_at;
+
+selectEnabled:
+SELECT * FROM AutoRule WHERE enabled = 1 ORDER BY created_at;
+
+selectById:
+SELECT * FROM AutoRule WHERE id = :id;
+
+insert:
+INSERT INTO AutoRule(name, kind, amount_cents, category_id, sub_category_id, account_id, note, trigger_type, trigger_config, enabled, last_fired_at, created_at, updated_at)
+VALUES (:name, :kind, :amount_cents, :category_id, :sub_category_id, :account_id, :note, :trigger_type, :trigger_config, :enabled, :last_fired_at, :created_at, :updated_at);
+
+update:
+UPDATE AutoRule
+SET name = :name,
+    kind = :kind,
+    amount_cents = :amount_cents,
+    category_id = :category_id,
+    sub_category_id = :sub_category_id,
+    account_id = :account_id,
+    note = :note,
+    trigger_type = :trigger_type,
+    trigger_config = :trigger_config,
+    enabled = :enabled,
+    updated_at = :updated_at
+WHERE id = :id;
+
+updateEnabled:
+UPDATE AutoRule SET enabled = :enabled, updated_at = :updated_at WHERE id = :id;
+
+updateLastFired:
+UPDATE AutoRule SET last_fired_at = :last_fired_at, updated_at = :updated_at WHERE id = :id;
+
+deleteById:
+DELETE FROM AutoRule WHERE id = :id;

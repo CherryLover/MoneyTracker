@@ -1,0 +1,37 @@
+-- 大类。kind: 0 = expense, 1 = income；privacy: 0/1
+CREATE TABLE Category (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    kind INTEGER NOT NULL,
+    privacy INTEGER NOT NULL DEFAULT 0,
+    sort_index INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+);
+
+CREATE INDEX category_kind_sort ON Category(kind, sort_index);
+
+selectAll:
+SELECT * FROM Category ORDER BY kind, sort_index, created_at;
+
+selectByKind:
+SELECT * FROM Category WHERE kind = :kind ORDER BY sort_index, created_at;
+
+selectById:
+SELECT * FROM Category WHERE id = :id;
+
+insert:
+INSERT INTO Category(id, name, emoji, kind, privacy, sort_index, created_at)
+VALUES (:id, :name, :emoji, :kind, :privacy, :sort_index, :created_at);
+
+update:
+UPDATE Category SET name = :name, emoji = :emoji, privacy = :privacy WHERE id = :id;
+
+updateSortIndex:
+UPDATE Category SET sort_index = :sort_index WHERE id = :id;
+
+deleteById:
+DELETE FROM Category WHERE id = :id;
+
+countAll:
+SELECT COUNT(*) FROM Category;

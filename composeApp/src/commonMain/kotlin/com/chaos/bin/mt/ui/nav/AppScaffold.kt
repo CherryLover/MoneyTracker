@@ -105,7 +105,7 @@ private fun BottomTabBar() {
                 Text(
                     text = opts.title,
                     color = if (active) c.text else c.text3,
-                    fontSize = 10.5.sp,
+                    fontSize = 12.sp,
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
                     modifier = Modifier.padding(top = 3.dp),
                 )

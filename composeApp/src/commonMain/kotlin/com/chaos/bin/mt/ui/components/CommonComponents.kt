@@ -73,7 +73,7 @@ fun PageHeader(
         Text(
             text = title,
             color = c.text,
-            fontSize = 17.sp,
+            fontSize = 19.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
         )
@@ -140,7 +140,7 @@ fun TypeToggle(
                 Text(
                     text = label,
                     color = if (active) c.accentText else c.text2,
-                    fontSize = 13.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
@@ -175,7 +175,7 @@ fun FieldLine(
         Text(
             text = label,
             color = if (placeholder) c.text3 else c.text2,
-            fontSize = 12.5.sp,
+            fontSize = 14.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -193,6 +193,6 @@ fun EmojiChip(emoji: String, size: Dp = 36.dp, colors: AppColors = LocalAppColor
             .background(colors.chip, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Text(emoji, fontSize = 17.sp, textAlign = TextAlign.Center)
+        Text(emoji, fontSize = 19.sp, textAlign = TextAlign.Center)
     }
 }

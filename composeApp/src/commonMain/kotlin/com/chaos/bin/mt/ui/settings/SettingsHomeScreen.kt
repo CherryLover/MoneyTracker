@@ -40,7 +40,7 @@ fun SettingsHomeScreen(onOpen: (SettingsDest) -> Unit) {
         Text(
             "设置",
             color = c.text,
-            fontSize = 24.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
         )
@@ -84,9 +84,9 @@ private fun Group(
                 Icon(icon, null, tint = c.text2, modifier = Modifier.size(18.dp))
                 HSpace(12.dp)
                 Column(Modifier.weight(1f)) {
-                    Text(title, color = c.text, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(title, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     VSpace(2.dp)
-                    Text(desc, color = c.text3, fontSize = 11.5.sp)
+                    Text(desc, color = c.text3, fontSize = 13.sp)
                 }
                 Icon(LineIcons.ChevR, null, tint = c.text3, modifier = Modifier.size(14.dp))
             }

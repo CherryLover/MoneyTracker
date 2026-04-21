@@ -1,0 +1,85 @@
+-- 一笔记录。kind: 0 = expense, 1 = income；amount_cents 以分为单位
+CREATE TABLE Record (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    kind INTEGER NOT NULL,
+    amount_cents INTEGER NOT NULL,
+    category_id TEXT NOT NULL REFERENCES Category(id),
+    sub_category_id TEXT REFERENCES SubCategory(id),
+    account_id TEXT NOT NULL REFERENCES Account(id),
+    note TEXT NOT NULL DEFAULT '',
+    occurred_at INTEGER NOT NULL,
+    privacy INTEGER NOT NULL DEFAULT 0,
+    source INTEGER NOT NULL DEFAULT 0,
+    auto_rule_id INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX record_occurred ON Record(occurred_at);
+CREATE INDEX record_category ON Record(category_id);
+CREATE INDEX record_account ON Record(account_id);
+
+-- 列表展示：连 Category / SubCategory / Account 拿名字和 emoji
+selectInRangeDetailed:
+SELECT
+    r.id,
+    r.kind,
+    r.amount_cents,
+    r.category_id,
+    r.sub_category_id,
+    r.account_id,
+    r.note,
+    r.occurred_at,
+    r.privacy,
+    r.source,
+    r.auto_rule_id,
+    c.name AS category_name,
+    c.emoji AS category_emoji,
+    c.privacy AS category_privacy,
+    s.name AS sub_category_name,
+    s.privacy AS sub_category_privacy,
+    a.name AS account_name,
+    a.emoji AS account_emoji
+FROM Record r
+INNER JOIN Category c ON r.category_id = c.id
+LEFT JOIN SubCategory s ON r.sub_category_id = s.id
+INNER JOIN Account a ON r.account_id = a.id
+WHERE r.occurred_at BETWEEN :start_ms AND :end_ms
+ORDER BY r.occurred_at DESC, r.id DESC;
+
+-- 月度汇总：支出与收入分别求和
+sumByKindInRange:
+SELECT kind, COALESCE(SUM(amount_cents), 0) AS total_cents
+FROM Record
+WHERE occurred_at BETWEEN :start_ms AND :end_ms
+GROUP BY kind;
+
+-- 所有记录的最小字段，供本地（时区感知）聚合使用
+selectAllStatsFields:
+SELECT occurred_at, kind, amount_cents FROM Record;
+
+selectById:
+SELECT * FROM Record WHERE id = :id;
+
+insert:
+INSERT INTO Record(kind, amount_cents, category_id, sub_category_id, account_id, note, occurred_at, privacy, source, auto_rule_id, created_at, updated_at)
+VALUES (:kind, :amount_cents, :category_id, :sub_category_id, :account_id, :note, :occurred_at, :privacy, :source, :auto_rule_id, :created_at, :updated_at);
+
+lastInsertRowId:
+SELECT last_insert_rowid();
+
+update:
+UPDATE Record
+SET kind = :kind,
+    amount_cents = :amount_cents,
+    category_id = :category_id,
+    sub_category_id = :sub_category_id,
+    account_id = :account_id,
+    note = :note,
+    occurred_at = :occurred_at,
+    privacy = :privacy,
+    updated_at = :updated_at
+WHERE id = :id;
+
+deleteById:
+DELETE FROM Record WHERE id = :id;

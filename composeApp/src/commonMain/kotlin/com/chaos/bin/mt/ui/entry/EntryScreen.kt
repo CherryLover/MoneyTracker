@@ -34,63 +34,131 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.chaos.bin.mt.data.Account
+import com.chaos.bin.mt.data.AppTimeZone
 import com.chaos.bin.mt.data.Category
-import com.chaos.bin.mt.data.MockData
+import com.chaos.bin.mt.data.RecordKind
 import com.chaos.bin.mt.data.SubCategory
+import com.chaos.bin.mt.data.nowInstant
+import com.chaos.bin.mt.di.LocalAppContainer
 import com.chaos.bin.mt.theme.LocalAppColors
+import com.chaos.bin.mt.ui.components.AccountPickerSheet
+import com.chaos.bin.mt.ui.components.DateTimePickerSheet
 import com.chaos.bin.mt.ui.components.FieldLine
 import com.chaos.bin.mt.ui.components.HSpace
 import com.chaos.bin.mt.ui.components.Hairline
 import com.chaos.bin.mt.ui.components.LineIcons
 import com.chaos.bin.mt.ui.components.TypeToggle
 import com.chaos.bin.mt.ui.components.VSpace
+import com.chaos.bin.mt.ui.home.formatYuan
+import kotlinx.datetime.Instant
+import kotlinx.datetime.toLocalDateTime
 
 @Composable
-fun EntryScreen(hasAccounts: Boolean = true) {
-    val c = LocalAppColors.current
-    var tab by remember { mutableStateOf("expense") } // expense | income
-    val amount by remember { mutableStateOf("38.50") }
-    var catId by remember { mutableStateOf("food") }
-    var subId by remember { mutableStateOf("food-lunch") }
+fun EntryScreen() {
+    val container = LocalAppContainer.current
+    val vm: EntryViewModel = viewModel { EntryViewModel(container) }
+    val state by vm.state.collectAsStateWithLifecycle()
+    val pendingEditId by container.pendingEditRecordId.collectAsStateWithLifecycle()
+    val tabNavigator = cafe.adriel.voyager.navigator.tab.LocalTabNavigator.current
 
-    val cats = if (tab == "expense") MockData.expenseCategories else MockData.incomeCategories
-    val currentCat = cats.firstOrNull { it.id == catId } ?: cats.first()
-    val subs = currentCat.subs
-    val currentSub = subs.firstOrNull { it.id == subId } ?: subs.firstOrNull()
+    androidx.compose.runtime.LaunchedEffect(pendingEditId) {
+        pendingEditId?.let { id ->
+            vm.loadForEdit(id)
+            container.pendingEditRecordId.value = null
+        }
+    }
+
+    EntryContent(
+        state = state,
+        onKindChange = vm::setKind,
+        onSelectCategory = vm::selectCategory,
+        onSelectSub = vm::selectSub,
+        onSelectAccount = vm::selectAccount,
+        onNoteChange = vm::setNote,
+        onOccurredAtChange = vm::setOccurredAt,
+        onTypeDigit = vm::typeDigit,
+        onTypeDot = vm::typeDot,
+        onBackspace = vm::backspace,
+        onCancelEdit = {
+            vm.cancelEditing()
+            tabNavigator.current = com.chaos.bin.mt.ui.nav.HomeTab
+        },
+        onSave = {
+            vm.save { wasEdit ->
+                if (wasEdit) tabNavigator.current = com.chaos.bin.mt.ui.nav.HomeTab
+            }
+        },
+    )
+}
+
+@Composable
+private fun EntryContent(
+    state: EntryUiState,
+    onKindChange: (RecordKind) -> Unit,
+    onSelectCategory: (String) -> Unit,
+    onSelectSub: (String) -> Unit,
+    onSelectAccount: (String) -> Unit,
+    onNoteChange: (String) -> Unit,
+    onOccurredAtChange: (Instant) -> Unit,
+    onTypeDigit: (Char) -> Unit,
+    onTypeDot: () -> Unit,
+    onBackspace: () -> Unit,
+    onCancelEdit: () -> Unit,
+    onSave: () -> Unit,
+) {
+    val c = LocalAppColors.current
+    var showAccountPicker by remember { mutableStateOf(false) }
+    var showDateTimePicker by remember { mutableStateOf(false) }
 
     Column(
         Modifier
             .fillMaxSize()
             .background(c.bg),
     ) {
-        // 顶栏：类型切换
+        // 编辑模式横幅
+        if (state.isEditing) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(c.subtle)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("编辑记录", color = c.text2, fontSize = 14.sp)
+                Box(Modifier.weight(1f))
+                Box(
+                    Modifier
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onCancelEdit,
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    Text("取消", color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+
+        // 类型切换
         Box(
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp, bottom = 6.dp),
+            Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp),
             contentAlignment = Alignment.Center,
         ) {
             TypeToggle(
-                current = tab,
+                current = if (state.kind == RecordKind.Expense) "expense" else "income",
                 options = listOf("expense" to "支出", "income" to "收入"),
-                onChange = { next ->
-                    tab = next
-                    val list = if (next == "expense") MockData.expenseCategories else MockData.incomeCategories
-                    val first = list.first()
-                    catId = first.id
-                    subId = first.subs.first().id
+                onChange = { key ->
+                    onKindChange(if (key == "expense") RecordKind.Expense else RecordKind.Income)
                 },
             )
         }
 
-        // 金额展示
-        AmountDisplay(
-            amount = amount,
-            categoryName = currentCat.name,
-            subName = currentSub?.name.orEmpty(),
-        )
+        AmountDisplay(amount = state.amountInput)
 
-        // 分类 + 小类 + 字段
         Column(
             Modifier
                 .weight(1f)
@@ -99,56 +167,88 @@ fun EntryScreen(hasAccounts: Boolean = true) {
                 .padding(horizontal = 12.dp, vertical = 4.dp),
         ) {
             CategoryGrid(
-                cats = cats,
-                activeId = catId,
-                onSelect = { id ->
-                    catId = id
-                    val c2 = cats.firstOrNull { it.id == id } ?: cats.first()
-                    subId = c2.subs.first().id
-                },
+                cats = state.categories,
+                activeId = state.selectedCategoryId,
+                onSelect = onSelectCategory,
             )
             VSpace(4.dp)
-            SubRow(subs = subs, activeId = subId, onSelect = { subId = it })
+            SubRow(
+                subs = state.currentCategory?.subs.orEmpty(),
+                activeId = state.selectedSubCategoryId,
+                onSelect = onSelectSub,
+            )
             VSpace(4.dp)
-            FieldBlock(hasAccounts = hasAccounts)
+            FieldBlock(
+                hasAccounts = state.hasAccounts,
+                accountLabel = state.accounts.firstOrNull { it.id == state.selectedAccountId }?.name
+                    ?: "选择账户",
+                note = state.note,
+                onNoteChange = onNoteChange,
+                occurredAtLabel = formatDateTime(state.occurredAt ?: nowInstant()),
+                onDateTimeClick = { showDateTimePicker = true },
+                onAccountClick = { showAccountPicker = true },
+            )
         }
 
-        Keypad()
+        Keypad(
+            onDigit = onTypeDigit,
+            onDot = onTypeDot,
+            onBackspace = onBackspace,
+            onDone = onSave,
+        )
+    }
+
+    if (showAccountPicker) {
+        AccountPickerSheet(
+            accounts = state.accounts,
+            selectedId = state.selectedAccountId,
+            onPick = onSelectAccount,
+            onDismiss = { showAccountPicker = false },
+        )
+    }
+
+    if (showDateTimePicker) {
+        DateTimePickerSheet(
+            initial = state.occurredAt ?: nowInstant(),
+            onConfirm = {
+                onOccurredAtChange(it)
+                showDateTimePicker = false
+            },
+            onDismiss = { showDateTimePicker = false },
+        )
+    }
+}
+
+private fun formatDateTime(at: Instant): String {
+    val dt = at.toLocalDateTime(AppTimeZone)
+    val today = nowInstant().toLocalDateTime(AppTimeZone).date
+    val mm = dt.monthNumber.toString().padStart(2, '0')
+    val dd = dt.dayOfMonth.toString().padStart(2, '0')
+    val hh = dt.hour.toString().padStart(2, '0')
+    val min = dt.minute.toString().padStart(2, '0')
+    return if (dt.date == today) {
+        "今天 $hh:$min"
+    } else {
+        "$mm-$dd $hh:$min"
     }
 }
 
 @Composable
-private fun AmountDisplay(amount: String, categoryName: String, subName: String) {
+private fun AmountDisplay(amount: String) {
     val c = LocalAppColors.current
     Column(
         Modifier
             .fillMaxWidth()
-            .padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 14.dp),
+            .padding(start = 22.dp, end = 22.dp, top = 12.dp, bottom = 14.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(categoryName, color = c.text3, fontSize = 11.5.sp)
-            HSpace(8.dp)
-            Text("·", color = c.text3, fontSize = 11.5.sp)
-            HSpace(8.dp)
-            Text(subName, color = c.text3, fontSize = 11.5.sp)
-        }
-        VSpace(4.dp)
         Row(verticalAlignment = Alignment.Bottom) {
-            Text("¥", color = c.text2, fontSize = 20.sp, fontWeight = FontWeight.Light)
+            Text("¥", color = c.text2, fontSize = 23.sp, fontWeight = FontWeight.Light)
             HSpace(4.dp)
             Text(
                 text = amount,
                 color = c.text,
-                fontSize = 44.sp,
+                fontSize = 50.sp,
                 fontWeight = FontWeight.Medium,
-            )
-            Box(Modifier.weight(1f))
-            // 闪烁光标（静态呈现）
-            Box(
-                Modifier
-                    .width(1.5.dp)
-                    .height(30.dp)
-                    .background(c.accent),
             )
         }
         VSpace(10.dp)
@@ -159,13 +259,12 @@ private fun AmountDisplay(amount: String, categoryName: String, subName: String)
 @Composable
 private fun CategoryGrid(
     cats: List<Category>,
-    activeId: String,
+    activeId: String?,
     onSelect: (String) -> Unit,
 ) {
     val c = LocalAppColors.current
-    // 5 列网格（手动布局，按行分组避免引入 LazyGrid 依赖噪音）
     val rows = cats.chunked(5)
-    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+    Column {
         rows.forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 row.forEach { cat ->
@@ -198,22 +297,19 @@ private fun CategoryGrid(
                             Text(
                                 cat.emoji,
                                 color = if (active) c.accentText else c.text,
-                                fontSize = 18.sp,
+                                fontSize = 21.sp,
                                 textAlign = TextAlign.Center,
                             )
                         }
                         Text(
                             cat.name,
                             color = if (active) c.text else c.text2,
-                            fontSize = 11.sp,
+                            fontSize = 13.sp,
                             fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
                         )
                     }
                 }
-                // 填满列数
-                repeat(5 - row.size) {
-                    Box(Modifier.weight(1f))
-                }
+                repeat(5 - row.size) { Box(Modifier.weight(1f)) }
             }
         }
     }
@@ -222,7 +318,7 @@ private fun CategoryGrid(
 @Composable
 private fun SubRow(
     subs: List<SubCategory>,
-    activeId: String,
+    activeId: String?,
     onSelect: (String) -> Unit,
 ) {
     val c = LocalAppColors.current
@@ -253,7 +349,7 @@ private fun SubRow(
                 Text(
                     s.name,
                     color = if (active) c.accentText else c.text2,
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
                     fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
                 )
             }
@@ -262,21 +358,62 @@ private fun SubRow(
 }
 
 @Composable
-private fun FieldBlock(hasAccounts: Boolean) {
+private fun FieldBlock(
+    hasAccounts: Boolean,
+    accountLabel: String,
+    note: String,
+    onNoteChange: (String) -> Unit,
+    occurredAtLabel: String,
+    onDateTimeClick: () -> Unit,
+    onAccountClick: () -> Unit,
+) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 4.dp)) {
         Hairline()
-        FieldLine(icon = LineIcons.Cal, label = "今天 12:24")
+        FieldLine(icon = LineIcons.Cal, label = occurredAtLabel, onClick = onDateTimeClick)
         Hairline()
         if (hasAccounts) {
-            FieldLine(icon = LineIcons.Wallet, label = "微信")
+            FieldLine(icon = LineIcons.Wallet, label = accountLabel, onClick = onAccountClick)
             Hairline()
         }
-        FieldLine(icon = LineIcons.Edit, label = "添加备注...", placeholder = true)
+        NoteInlineField(value = note, onChange = onNoteChange)
     }
 }
 
 @Composable
-private fun Keypad() {
+private fun NoteInlineField(value: String, onChange: (String) -> Unit) {
+    val c = LocalAppColors.current
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(LineIcons.Edit, null, tint = c.text3, modifier = Modifier.size(15.dp))
+        HSpace(8.dp)
+        Box(Modifier.weight(1f)) {
+            androidx.compose.foundation.text.BasicTextField(
+                value = value,
+                onValueChange = onChange,
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = c.text2,
+                    fontSize = 14.sp,
+                ),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(c.accent),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (value.isEmpty()) {
+                Text("添加备注...", color = c.text3, fontSize = 14.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun Keypad(
+    onDigit: (Char) -> Unit,
+    onDot: () -> Unit,
+    onBackspace: () -> Unit,
+    onDone: () -> Unit,
+) {
     val c = LocalAppColors.current
     val rows = listOf(
         listOf("7", "8", "9", "←"),
@@ -291,14 +428,10 @@ private fun Keypad() {
             .padding(6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        // 顶部分割线
         Hairline()
         VSpace(2.dp)
         rows.forEach { row ->
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 row.forEach { k ->
                     val isAction = k == "再记" || k == "完成"
                     val isPrimary = k == "完成"
@@ -310,7 +443,7 @@ private fun Keypad() {
                             .background(
                                 color = when {
                                     isPrimary -> c.accent
-                                    isAction || isDel -> c.subtle
+                                    isAction || isDel || k == "+" || k == "-" -> c.subtle
                                     else -> c.surface
                                 },
                                 shape = RoundedCornerShape(8.dp),
@@ -321,16 +454,25 @@ private fun Keypad() {
                                     c.hairline,
                                     RoundedCornerShape(8.dp),
                                 ) else Modifier,
+                            )
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {
+                                    when (k) {
+                                        "←" -> onBackspace()
+                                        "." -> onDot()
+                                        "完成" -> onDone()
+                                        "再记" -> onDone()
+                                        "+", "-" -> {} // 暂不处理表达式
+                                        else -> onDigit(k[0])
+                                    }
+                                },
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (isDel) {
-                            Icon(
-                                LineIcons.Del,
-                                null,
-                                tint = c.text,
-                                modifier = Modifier.size(20.dp),
-                            )
+                            Icon(LineIcons.Del, null, tint = c.text, modifier = Modifier.size(20.dp))
                         } else {
                             Text(
                                 k,
