@@ -18,6 +18,7 @@ class AppContainer(val database: MtDatabase) {
     val seeder = DefaultDataSeeder(
         categoryRepository = categoryRepository,
         accountRepository = accountRepository,
+        preferenceRepository = preferenceRepository,
     )
 
     /**

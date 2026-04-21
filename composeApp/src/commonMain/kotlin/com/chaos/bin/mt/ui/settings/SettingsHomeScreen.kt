@@ -26,7 +26,7 @@ import com.chaos.bin.mt.ui.components.Hairline
 import com.chaos.bin.mt.ui.components.LineIcons
 import com.chaos.bin.mt.ui.components.VSpace
 
-enum class SettingsDest { Categories, Automation, Privacy }
+enum class SettingsDest { Categories, Automation, Privacy, Accounts }
 
 @Composable
 fun SettingsHomeScreen(onOpen: (SettingsDest) -> Unit) {
@@ -47,6 +47,7 @@ fun SettingsHomeScreen(onOpen: (SettingsDest) -> Unit) {
 
         Group(
             items = listOf(
+                Triple(LineIcons.Wallet, "账户管理", SettingsDest.Accounts) to "管理收支使用的账户",
                 Triple(LineIcons.Cog, "分类管理", SettingsDest.Categories) to "支出 / 收入 分类与小类",
                 Triple(LineIcons.Repeat, "自动记账", SettingsDest.Automation) to "定时规则自动生成记录",
                 Triple(LineIcons.Lock, "隐私保护", SettingsDest.Privacy) to "遮蔽金额、应用锁、截屏隐藏",

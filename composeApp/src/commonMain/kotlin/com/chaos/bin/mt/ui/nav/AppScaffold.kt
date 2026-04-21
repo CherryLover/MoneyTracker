@@ -41,6 +41,7 @@ import com.chaos.bin.mt.ui.components.Hairline
 import com.chaos.bin.mt.ui.components.LineIcons
 import com.chaos.bin.mt.ui.entry.EntryScreen
 import com.chaos.bin.mt.ui.home.HomeScreen
+import com.chaos.bin.mt.ui.settings.AccountsScreen
 import com.chaos.bin.mt.ui.settings.AutomationScreen
 import com.chaos.bin.mt.ui.settings.CategoriesScreen
 import com.chaos.bin.mt.ui.settings.PrivacyScreen
@@ -163,12 +164,21 @@ private object SettingsHomeScreenRoute : Screen {
         SettingsHomeScreen(
             onOpen = { dest ->
                 when (dest) {
+                    SettingsDest.Accounts -> nav.push(AccountsScreenRoute)
                     SettingsDest.Categories -> nav.push(CategoriesScreenRoute)
                     SettingsDest.Automation -> nav.push(AutomationScreenRoute)
                     SettingsDest.Privacy -> nav.push(PrivacyScreenRoute)
                 }
             },
         )
+    }
+}
+
+private object AccountsScreenRoute : Screen {
+    @Composable
+    override fun Content() {
+        val nav = LocalNavigator.currentOrThrow
+        AccountsScreen(onBack = { nav.pop() })
     }
 }
 

@@ -64,7 +64,8 @@ class EntryViewModel(private val container: AppContainer) : ViewModel() {
         draftFlow,
         draftFlow.flatMapLatest { container.categoryRepository.observeTree(it.kind) },
         container.accountRepository.observeAll(),
-    ) { draft, cats, accts ->
+        container.preferenceRepository.observe("default_account_id"),
+    ) { draft, cats, accts, defaultAccountId ->
         // 若选中项不在新数据里，回退到首项
         val catId = draft.selectedCategoryId?.takeIf { id -> cats.any { it.id == id } }
             ?: cats.firstOrNull()?.id
@@ -73,6 +74,7 @@ class EntryViewModel(private val container: AppContainer) : ViewModel() {
             currentCat?.subs?.any { it.id == id } == true
         } ?: currentCat?.subs?.firstOrNull()?.id
         val accId = draft.selectedAccountId?.takeIf { id -> accts.any { it.id == id } }
+            ?: accts.firstOrNull { it.id == defaultAccountId }?.id
             ?: accts.firstOrNull()?.id
         EntryUiState(
             draft = draft.copy(

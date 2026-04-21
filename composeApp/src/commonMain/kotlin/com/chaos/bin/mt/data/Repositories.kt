@@ -116,6 +116,18 @@ class AccountRepository(private val db: MtDatabase) {
             created_at = nowMillis(),
         )
     }
+
+    suspend fun update(id: String, name: String, emoji: String) = withContext(Dispatchers.Default) {
+        db.accountQueries.update(name = name, emoji = emoji, id = id)
+    }
+
+    suspend fun delete(id: String) = withContext(Dispatchers.Default) {
+        db.accountQueries.deleteById(id)
+    }
+
+    suspend fun updateSortIndex(id: String, sortIndex: Long) = withContext(Dispatchers.Default) {
+        db.accountQueries.updateSortIndex(sort_index = sortIndex, id = id)
+    }
 }
 
 class RecordRepository(private val db: MtDatabase) {
@@ -199,6 +211,10 @@ class RecordRepository(private val db: MtDatabase) {
         db.recordQueries.deleteById(id)
     }
 
+    suspend fun countByAccount(accountId: String): Long = withContext(Dispatchers.Default) {
+        db.recordQueries.countByAccount(accountId).executeAsOne()
+    }
+
     suspend fun getRawById(id: Long): RawRecord? = withContext(Dispatchers.Default) {
         val row = db.recordQueries.selectById(id).executeAsOneOrNull() ?: return@withContext null
         RawRecord(
@@ -259,6 +275,10 @@ class PreferenceRepository(private val db: MtDatabase) {
 
     suspend fun getBool(key: String, default: Boolean = false): Boolean =
         get(key)?.let { it == "1" } ?: default
+
+    suspend fun delete(key: String) = withContext(Dispatchers.Default) {
+        db.preferenceQueries.deleteByKey(key)
+    }
 }
 
 /** SQLDelight 生成的投影行 → 领域类型。 */

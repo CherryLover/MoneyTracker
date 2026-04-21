@@ -58,6 +58,10 @@ GROUP BY kind;
 selectAllStatsFields:
 SELECT occurred_at, kind, amount_cents FROM Record;
 
+-- 判断某账户下是否还有记录，用于删除账户前的安全检查
+countByAccount:
+SELECT COUNT(*) FROM Record WHERE account_id = :account_id;
+
 selectById:
 SELECT * FROM Record WHERE id = :id;
 

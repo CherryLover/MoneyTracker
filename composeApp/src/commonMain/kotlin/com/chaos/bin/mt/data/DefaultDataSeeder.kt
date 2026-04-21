@@ -4,6 +4,7 @@ package com.chaos.bin.mt.data
 class DefaultDataSeeder(
     private val categoryRepository: CategoryRepository,
     private val accountRepository: AccountRepository,
+    private val preferenceRepository: PreferenceRepository,
 ) {
     private data class SubSeed(val id: String, val name: String, val privacy: Boolean = false)
 
@@ -113,5 +114,6 @@ class DefaultDataSeeder(
         seeds.forEachIndexed { i, a ->
             accountRepository.insert(a.id, a.name, a.emoji, i.toLong())
         }
+        preferenceRepository.set("default_account_id", seeds.first().id)
     }
 }
