@@ -5,7 +5,7 @@
 **优先级**: high  
 **负责人**: jiangjiwei  
 **创建时间**: 2026-04-21 17:22  
-**更新时间**: 2026-04-21 17:22  
+**更新时间**: 2026-04-23  
 **标签**: kmp, compose, sqldelight, voyager, money-tracker
 
 ## 背景
@@ -30,9 +30,10 @@
 
 ## 实施步骤
 - [x] **零期：UI 骨架**（commit `8817a78`）— 7 个屏静态画完，Voyager 导航 + warm 主题 + 手写线条图标，跑在 MockData 上
-- [x] **一期：最小闭环**（待提交）— SQLDelight schema + 三平台 driver + Seeder + Repository + HomeVM/EntryVM + Home 和 Entry 接真实 DB
-- [~] 二期：完整 CRUD — 首页记录行编辑删除 ✅ / 月份 picker ✅ / 分类管理 CRUD ❌ / 账户管理 ❌
-- [ ] 三期：隐私 + 主题 — 隐私全局开关 + 主题手动切换 + 应用锁（Android BiometricPrompt / iOS LAContext）+ 截屏遮蔽（Android FLAG_SECURE / iOS secureText）
+- [x] **一期：最小闭环**（commit `727d3af`）— SQLDelight schema + 三平台 driver + Seeder + Repository + HomeVM/EntryVM + Home 和 Entry 接真实 DB
+- [x] **二期：完整 CRUD**（commits `095f50f` + `275415f`）— 首页记录行编辑删除 ✅ / 月份 picker ✅ / 分类管理 CRUD + 拖拽排序 ✅ / 账户管理 ✅
+- [x] **三期：隐私（精简）**（commit `9dd950c`）— 隐私分类金额自动遮蔽 ✅ / 首页支出 · 收入 · 结余三项独立遮蔽开关 ✅
+    - **砍掉**：全局隐私主开关、应用锁（BiometricPrompt / LAContext）、截屏遮蔽（FLAG_SECURE / secureText）、主题手动切换——不再做，跟随系统的浅/深色足够
 - [ ] 四期：自动记账 — AutoRule CRUD + 启动时追赶引擎（共享 KMP 代码，无平台定时）+ 追赶上限保护
 - [ ] 五期：打磨 — 嵌入字体（Noto Sans SC/Inter）+ 空状态 UI + 过渡动画 + CSV/JSON 导入导出 + iCloud/Google Drive/本地备份 + 关键 VM/Repo 单元测试
 
@@ -90,15 +91,19 @@
 - `monthNumber` / `dayOfMonth` 改名为 `month` / `day` 的 deprecation
 - expect/actual 类 Beta 警告
 
-### 二期剩余
+### 二期（已完成）
+- 分类管理 CRUD 接到 `CategoryRepository`，支持大类 / 小类增删改、拖拽排序、隐私标记、可调分栏（commit `275415f`）
+- 账户管理：设置里新增 `AccountsScreen` + CRUD + 默认账户偏好（commit `095f50f`）
 
-- 分类管理 CRUD（目前 `CategoriesScreen` 仍读 `MockData`，需接到 `CategoryRepository` + 增删改排序 + 隐私标记）
-- 账户管理（原型没这个入口，需要在设置里加一个 `AccountsScreen` + CRUD）
+### 三期（已完成，精简版）
+- `PrivacyScreen` 接到真实 `CategoryRepository`，以大类为单位切换 `isPrivate` 标记
+- 首页分别为"支出 / 收入 / 结余"三项提供独立遮蔽开关（存 `PreferenceRepository`），开启后对应数字显示为 ••••
+- 明确不做：全局隐私主开关、应用锁、截屏遮蔽、手动主题切换
 
 ### 三个设置子页状态
-- 分类管理：挂在 `MockData` 上，待二期
+- 分类管理：✅ 已接 `CategoryRepository`
+- 隐私保护：✅ 已接 `CategoryRepository` + `PreferenceRepository`
 - 自动记账：挂在 `MockData` 上，待四期
-- 隐私保护：挂在硬编码列表上，待三期
 
 ## 技术方案
 分层结构：commonMain/db（SQLDelight 生成）→ commonMain/data（Models、Repositories、Seeder、Time）→ commonMain/di（AppContainer + LocalAppContainer）→ commonMain/ui/{home,entry,settings,nav,components,theme}（Compose UI + ViewModel）。平台入口（MainActivity / main.kt / MainViewController）各自构造 AppContainer 传给 App()。ViewModel 用 lifecycle-viewmodel-compose + StateFlow + viewModelScope。自动记账的追赶引擎放 commonMain/data/AutoRuleScheduler.kt，App 初始化时 LaunchedEffect 调一次。
@@ -134,12 +139,12 @@
 - `composeApp/src/jvmMain/kotlin/com/chaos/bin/mt/db/DatabaseFactory.jvm.kt`
 
 ## 风险和依赖
-1) 自动记账追赶引擎要设上限（比如最多追 90 天或 N 条），否则新装用户首次打开会插一堆历史记录；2) 用户手动删除过的自动记录不补回，靠只推进 lastFiredAt 保证不重复；3) Desktop 端 emoji 字体渲染可能回退成单色（Skia 渲染在 macOS 下正常，Linux/Windows 可能需要手动嵌入 emoji 字体）；4) kotlinx-datetime 0.7.1 把 Instant/Clock 迁到 kotlin.time，目前有一堆 deprecation warning 需要后续清理；5) 应用锁和截屏遮蔽在三平台的 actual 实现差异较大，Desktop 端可能直接跳过这两项
+1) 自动记账追赶引擎要设上限（比如最多追 90 天或 N 条），否则新装用户首次打开会插一堆历史记录；2) 用户手动删除过的自动记录不补回，靠只推进 lastFiredAt 保证不重复；3) Desktop 端 emoji 字体渲染可能回退成单色（Skia 渲染在 macOS 下正常，Linux/Windows 可能需要手动嵌入 emoji 字体）；4) kotlinx-datetime 0.7.1 把 Instant/Clock 迁到 kotlin.time，目前有一堆 deprecation warning 需要后续清理
 
 ## 验收标准
-- [x] 一期：App 能启动，首页空状态正常显示，记一笔能选分类/账户/键盘输入金额/保存，保存后首页能看到新记录（编译+启动通过，端到端闭环待用户手动验证）
-- [ ] 二期：在设置里能新建/编辑/删除大类和小类、能拖拽排序、能独立管理账户；首页点任意记录能进详情并删除；能切换到任意月份
-- [ ] 三期：设置里的隐私开关能控制首页遮蔽、能切换浅色/深色/跟随系统主题；Android/iOS 上能开启应用锁（生物识别）和截屏遮蔽
+- [x] 一期：App 能启动，首页空状态正常显示，记一笔能选分类/账户/键盘输入金额/保存，保存后首页能看到新记录
+- [x] 二期：在设置里能新建/编辑/删除大类和小类、能拖拽排序、能独立管理账户；首页点任意记录能进详情并删除；能切换到任意月份
+- [x] 三期（精简）：`PrivacyScreen` 能切换任一大类的隐私标记，首页被标记大类的金额显示 ••••；首页支出 / 收入 / 结余三项各自有独立遮蔽开关
 - [ ] 四期：能在设置里新建自动记账规则（每周/每月某天/每月第 N 个周 M）；关掉 App 隔几天打开能看到自动生成的对应记录；超过追赶上限时不会塞爆
 - [ ] 五期：字体嵌入后中英文数字视觉贴近原型；空状态有设计感；能导出/导入 CSV；能备份和恢复；关键 VM/Repo 有单元测试覆盖
 
