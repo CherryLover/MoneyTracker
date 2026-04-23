@@ -44,6 +44,7 @@ import com.chaos.bin.mt.data.Account
 import com.chaos.bin.mt.di.LocalAppContainer
 import com.chaos.bin.mt.theme.LocalAppColors
 import com.chaos.bin.mt.ui.components.EmojiChip
+import com.chaos.bin.mt.ui.components.EmptyState
 import com.chaos.bin.mt.ui.components.HSpace
 import com.chaos.bin.mt.ui.components.Hairline
 import com.chaos.bin.mt.ui.components.LineIcons
@@ -84,16 +85,13 @@ fun AccountsScreen(onBack: () -> Unit) {
         )
 
         if (state.accounts.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "还没有账户，点击 + 添加",
-                    color = c.text3,
-                    fontSize = 15.sp,
-                )
-            }
+            EmptyState(
+                icon = LineIcons.Wallet,
+                title = "还没有账户",
+                description = "添加账户后可以在记一笔时选择",
+                actionLabel = "添加账户",
+                onAction = { showAdd = true },
+            )
         } else {
             Column(
                 Modifier

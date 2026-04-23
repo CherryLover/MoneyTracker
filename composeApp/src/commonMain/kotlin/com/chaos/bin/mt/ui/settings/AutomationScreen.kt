@@ -34,6 +34,7 @@ import com.chaos.bin.mt.data.RecordKind
 import com.chaos.bin.mt.data.TriggerConfig
 import com.chaos.bin.mt.di.LocalAppContainer
 import com.chaos.bin.mt.theme.LocalAppColors
+import com.chaos.bin.mt.ui.components.EmptyState
 import com.chaos.bin.mt.ui.components.HSpace
 import com.chaos.bin.mt.ui.components.LineIcons
 import com.chaos.bin.mt.ui.components.PageHeader
@@ -83,14 +84,13 @@ fun AutomationScreen(
         )
 
         if (rules.isEmpty()) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 40.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("还没有规则，点击右上角 新建 添加", color = c.text3, fontSize = 14.sp)
-            }
+            EmptyState(
+                icon = LineIcons.Repeat,
+                title = "还没有自动记账规则",
+                description = "工资、房租、订阅等固定收支，交给规则自动生成",
+                actionLabel = "新建规则",
+                onAction = { onEdit(null) },
+            )
         } else {
             Column(Modifier.padding(horizontal = 16.dp)) {
                 rules.forEach { r ->

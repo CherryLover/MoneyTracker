@@ -40,6 +40,7 @@ import com.chaos.bin.mt.di.LocalAppContainer
 import com.chaos.bin.mt.theme.LocalAppColors
 import com.chaos.bin.mt.ui.nav.EntryTab
 import com.chaos.bin.mt.ui.components.EmojiChip
+import com.chaos.bin.mt.ui.components.EmptyState
 import com.chaos.bin.mt.ui.components.HSpace
 import com.chaos.bin.mt.ui.components.Hairline
 import com.chaos.bin.mt.ui.components.LineIcons
@@ -134,12 +135,11 @@ private fun HomeContent(
 
         if (state.dayGroups.isEmpty()) {
             item {
-                Box(
-                    Modifier.fillMaxWidth().padding(vertical = 60.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("本月还没有记账", color = c.text3, fontSize = 15.sp)
-                }
+                EmptyState(
+                    icon = LineIcons.Plus,
+                    title = "本月还没有记录",
+                    description = "点下方 + 开始记账",
+                )
             }
         } else {
             state.dayGroups.forEach { day ->
