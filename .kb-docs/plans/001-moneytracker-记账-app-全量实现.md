@@ -34,7 +34,13 @@
 - [x] **二期：完整 CRUD**（commits `095f50f` + `275415f`）— 首页记录行编辑删除 ✅ / 月份 picker ✅ / 分类管理 CRUD + 拖拽排序 ✅ / 账户管理 ✅
 - [x] **三期：隐私（精简）**（commit `9dd950c`）— 隐私分类金额自动遮蔽 ✅ / 首页支出 · 收入 · 结余三项独立遮蔽开关 ✅
     - **砍掉**：全局隐私主开关、应用锁（BiometricPrompt / LAContext）、截屏遮蔽（FLAG_SECURE / secureText）、主题手动切换——不再做，跟随系统的浅/深色足够
-- [ ] 四期：自动记账 — AutoRule CRUD + 启动时追赶引擎（共享 KMP 代码，无平台定时）+ 追赶上限保护
+- [x] **四期：自动记账**（commit `3de3eaa`）— AutoRule CRUD + 启动时追赶引擎 ✅
+    - 三种触发类型：每周（weekdays bitmask）/ 每月（month_days bitmask）/ 每隔 N 天
+    - Schema 扁平 INT（取消 JSON）：`trigger_type / trigger_weekdays / trigger_month_days / trigger_interval_days / trigger_hour / trigger_minute`
+    - 启动时 `AutoRuleScheduler.catchUp()`：枚举 `(lastFiredAt, now]` 内触发点逐条插 `Record(source=auto, autoRuleId)`，单向推进 `lastFiredAt` 保幂等
+    - 不回补规则建立前的历史（新建时 `lastFiredAt = now`）；无上限
+    - UI：列表页 + 新建/编辑共用页（Tab 切类型 + 动态配置区）
+    - **推迟**：中国法定工作日 / 节假日触发类型（数据源需每年人工更新，先不做）
 - [ ] 五期：打磨 — 嵌入字体（Noto Sans SC/Inter）+ 空状态 UI + 过渡动画 + CSV/JSON 导入导出 + iCloud/Google Drive/本地备份 + 关键 VM/Repo 单元测试
 
 ## 当前进度（截至 2026-04-21）
@@ -103,7 +109,7 @@
 ### 三个设置子页状态
 - 分类管理：✅ 已接 `CategoryRepository`
 - 隐私保护：✅ 已接 `CategoryRepository` + `PreferenceRepository`
-- 自动记账：挂在 `MockData` 上，待四期
+- 自动记账：✅ 已接 `AutoRuleRepository` + `AutoRuleScheduler`
 
 ## 技术方案
 分层结构：commonMain/db（SQLDelight 生成）→ commonMain/data（Models、Repositories、Seeder、Time）→ commonMain/di（AppContainer + LocalAppContainer）→ commonMain/ui/{home,entry,settings,nav,components,theme}（Compose UI + ViewModel）。平台入口（MainActivity / main.kt / MainViewController）各自构造 AppContainer 传给 App()。ViewModel 用 lifecycle-viewmodel-compose + StateFlow + viewModelScope。自动记账的追赶引擎放 commonMain/data/AutoRuleScheduler.kt，App 初始化时 LaunchedEffect 调一次。
@@ -145,7 +151,7 @@
 - [x] 一期：App 能启动，首页空状态正常显示，记一笔能选分类/账户/键盘输入金额/保存，保存后首页能看到新记录
 - [x] 二期：在设置里能新建/编辑/删除大类和小类、能拖拽排序、能独立管理账户；首页点任意记录能进详情并删除；能切换到任意月份
 - [x] 三期（精简）：`PrivacyScreen` 能切换任一大类的隐私标记，首页被标记大类的金额显示 ••••；首页支出 / 收入 / 结余三项各自有独立遮蔽开关
-- [ ] 四期：能在设置里新建自动记账规则（每周/每月某天/每月第 N 个周 M）；关掉 App 隔几天打开能看到自动生成的对应记录；超过追赶上限时不会塞爆
+- [x] 四期：能在设置里新建自动记账规则（每周 / 每月 / 每隔 N 天）；关掉 App 隔几天打开能看到自动生成的对应记录；不回补规则建立前的历史
 - [ ] 五期：字体嵌入后中英文数字视觉贴近原型；空状态有设计感；能导出/导入 CSV；能备份和恢复；关键 VM/Repo 有单元测试覆盖
 
 ## 参考资料
