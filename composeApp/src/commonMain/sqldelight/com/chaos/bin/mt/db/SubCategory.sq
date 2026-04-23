@@ -28,3 +28,6 @@ UPDATE SubCategory SET sort_index = :sort_index WHERE id = :id;
 
 deleteById:
 DELETE FROM SubCategory WHERE id = :id;
+
+deleteByCategory:
+DELETE FROM SubCategory WHERE category_id = :category_id;

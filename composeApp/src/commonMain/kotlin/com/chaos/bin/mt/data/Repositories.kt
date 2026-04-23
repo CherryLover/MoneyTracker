@@ -88,6 +88,50 @@ class CategoryRepository(private val db: MtDatabase) {
             created_at = nowMillis(),
         )
     }
+
+    suspend fun updateCategory(
+        id: String,
+        name: String,
+        emoji: String,
+        privacy: Boolean,
+    ) = withContext(Dispatchers.Default) {
+        db.categoryQueries.update(
+            name = name,
+            emoji = emoji,
+            privacy = if (privacy) 1 else 0,
+            id = id,
+        )
+    }
+
+    suspend fun updateCategorySortIndex(id: String, sortIndex: Long) = withContext(Dispatchers.Default) {
+        db.categoryQueries.updateSortIndex(sort_index = sortIndex, id = id)
+    }
+
+    /** 删除大类：先手动清掉下面的小类（覆盖未开启 FK 的平台），再删大类自身。 */
+    suspend fun deleteCategory(id: String) = withContext(Dispatchers.Default) {
+        db.subCategoryQueries.deleteByCategory(id)
+        db.categoryQueries.deleteById(id)
+    }
+
+    suspend fun updateSubCategory(
+        id: String,
+        name: String,
+        privacy: Boolean,
+    ) = withContext(Dispatchers.Default) {
+        db.subCategoryQueries.update(
+            name = name,
+            privacy = if (privacy) 1 else 0,
+            id = id,
+        )
+    }
+
+    suspend fun updateSubCategorySortIndex(id: String, sortIndex: Long) = withContext(Dispatchers.Default) {
+        db.subCategoryQueries.updateSortIndex(sort_index = sortIndex, id = id)
+    }
+
+    suspend fun deleteSubCategory(id: String) = withContext(Dispatchers.Default) {
+        db.subCategoryQueries.deleteById(id)
+    }
 }
 
 class AccountRepository(private val db: MtDatabase) {
@@ -213,6 +257,14 @@ class RecordRepository(private val db: MtDatabase) {
 
     suspend fun countByAccount(accountId: String): Long = withContext(Dispatchers.Default) {
         db.recordQueries.countByAccount(accountId).executeAsOne()
+    }
+
+    suspend fun countByCategory(categoryId: String): Long = withContext(Dispatchers.Default) {
+        db.recordQueries.countByCategory(categoryId).executeAsOne()
+    }
+
+    suspend fun countBySubCategory(subCategoryId: String): Long = withContext(Dispatchers.Default) {
+        db.recordQueries.countBySubCategory(subCategoryId).executeAsOne()
     }
 
     suspend fun getRawById(id: Long): RawRecord? = withContext(Dispatchers.Default) {

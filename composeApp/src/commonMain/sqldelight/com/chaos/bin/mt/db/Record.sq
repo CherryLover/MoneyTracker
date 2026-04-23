@@ -62,6 +62,13 @@ SELECT occurred_at, kind, amount_cents FROM Record;
 countByAccount:
 SELECT COUNT(*) FROM Record WHERE account_id = :account_id;
 
+-- 删除大类 / 小类前的安全检查
+countByCategory:
+SELECT COUNT(*) FROM Record WHERE category_id = :category_id;
+
+countBySubCategory:
+SELECT COUNT(*) FROM Record WHERE sub_category_id = :sub_category_id;
+
 selectById:
 SELECT * FROM Record WHERE id = :id;
 
