@@ -132,6 +132,26 @@ class CategoryRepository(private val db: MtDatabase) {
     suspend fun deleteSubCategory(id: String) = withContext(Dispatchers.Default) {
         db.subCategoryQueries.deleteById(id)
     }
+
+    /** 只切换大类的隐私标记，name / emoji 保持不变。 */
+    suspend fun setCategoryPrivacy(id: String, privacy: Boolean) = withContext(Dispatchers.Default) {
+        val row = db.categoryQueries.selectById(id).executeAsOneOrNull() ?: return@withContext
+        db.categoryQueries.update(
+            name = row.name,
+            emoji = row.emoji,
+            privacy = if (privacy) 1 else 0,
+            id = id,
+        )
+    }
+
+    suspend fun setSubCategoryPrivacy(id: String, privacy: Boolean) = withContext(Dispatchers.Default) {
+        val row = db.subCategoryQueries.selectById(id).executeAsOneOrNull() ?: return@withContext
+        db.subCategoryQueries.update(
+            name = row.name,
+            privacy = if (privacy) 1 else 0,
+            id = id,
+        )
+    }
 }
 
 class AccountRepository(private val db: MtDatabase) {

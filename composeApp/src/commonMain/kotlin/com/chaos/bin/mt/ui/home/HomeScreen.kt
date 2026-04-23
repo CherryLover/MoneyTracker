@@ -106,7 +106,6 @@ private fun HomeContent(
     onBackToCurrent: () -> Unit,
 ) {
     val c = LocalAppColors.current
-    val mask = state.privacyMasked
 
     LazyColumn(Modifier.fillMaxSize().background(c.bg)) {
         item {
@@ -125,7 +124,9 @@ private fun HomeContent(
                 expenseCents = state.summary.expenseCents,
                 incomeCents = state.summary.incomeCents,
                 balanceCents = state.summary.balanceCents,
-                mask = mask,
+                maskExpense = state.maskHomeExpense,
+                maskIncome = state.maskHomeIncome,
+                maskBalance = state.maskHomeBalance,
                 dailyExpense = state.dailyExpenseCents,
                 todayIndex = state.todayIndex,
             )
@@ -142,11 +143,11 @@ private fun HomeContent(
             }
         } else {
             state.dayGroups.forEach { day ->
-                item(key = "header-${day.date}") { DayHeader(day = day, mask = mask) }
+                item(key = "header-${day.date}") { DayHeader(day = day) }
                 items(day.items, key = { it.id }) { rec ->
                     RecordRow(
                         rec = rec,
-                        mask = mask,
+                        mask = rec.effectivePrivacy,
                         hasAccounts = state.hasAccounts,
                         onClick = { onRecordClick(rec) },
                     )
@@ -225,7 +226,9 @@ private fun BoardWarm(
     expenseCents: Long,
     incomeCents: Long,
     balanceCents: Long,
-    mask: Boolean,
+    maskExpense: Boolean,
+    maskIncome: Boolean,
+    maskBalance: Boolean,
     dailyExpense: List<Long>,
     todayIndex: Int,
 ) {
@@ -245,7 +248,7 @@ private fun BoardWarm(
             }
             VSpace(2.dp)
             Text(
-                text = if (mask) "¥•••••" else "¥" + formatYuan(expenseCents),
+                text = if (maskExpense) "¥•••••" else "¥" + formatYuan(expenseCents),
                 color = c.text,
                 fontSize = 46.sp,
                 fontWeight = FontWeight.Medium,
@@ -260,7 +263,7 @@ private fun BoardWarm(
                     Text("收入", color = c.text2, fontSize = 13.sp)
                     VSpace(3.dp)
                     Text(
-                        text = if (mask) "¥•••" else "¥" + formatYuan(incomeCents),
+                        text = if (maskIncome) "¥•••" else "¥" + formatYuan(incomeCents),
                         color = c.income,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Medium,
@@ -270,7 +273,7 @@ private fun BoardWarm(
                     Text("结余", color = c.text2, fontSize = 13.sp)
                     VSpace(3.dp)
                     Text(
-                        text = if (mask) "¥•••" else "¥" + formatYuan(balanceCents),
+                        text = if (maskBalance) "¥•••" else "¥" + formatYuan(balanceCents),
                         color = c.text,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Medium,
@@ -316,7 +319,7 @@ private fun MiniBarChart(daily: List<Long>, todayIndex: Int) {
 }
 
 @Composable
-private fun DayHeader(day: DayGroup, mask: Boolean) {
+private fun DayHeader(day: DayGroup) {
     val c = LocalAppColors.current
     val monthNum = day.date.monthNumber
     val dayNum = day.date.dayOfMonth
@@ -351,7 +354,7 @@ private fun DayHeader(day: DayGroup, mask: Boolean) {
             )
             Box(Modifier.weight(1f))
             Text(
-                text = "支出 " + if (mask) "¥•••" else "¥" + formatYuan(dayExp),
+                text = "支出 ¥" + formatYuan(dayExp),
                 color = c.text2,
                 fontSize = 13.sp,
             )

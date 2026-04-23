@@ -25,7 +25,9 @@ data class HomeUiState(
     val month: Int,
     val dayGroups: List<DayGroup> = emptyList(),
     val summary: MonthSummary = MonthSummary(0, 0),
-    val privacyMasked: Boolean = false,
+    val maskHomeExpense: Boolean = false,
+    val maskHomeIncome: Boolean = false,
+    val maskHomeBalance: Boolean = false,
     val hasAccounts: Boolean = true,
     /** 本月每天的支出汇总（分），下标 0 = 1 号，长度 = 当月天数。 */
     val dailyExpenseCents: List<Long> = emptyList(),
@@ -45,16 +47,22 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
     private val now = nowInstant().toLocalDateTime(AppTimeZone)
     private val monthSelection = MutableStateFlow(now.year to now.monthNumber)
 
+    private val homeMasks = combine(
+        container.preferenceRepository.observe(PrefKeys.PRIVACY_HOME_EXPENSE),
+        container.preferenceRepository.observe(PrefKeys.PRIVACY_HOME_INCOME),
+        container.preferenceRepository.observe(PrefKeys.PRIVACY_HOME_BALANCE),
+    ) { e, i, b -> HomeMasks(e == "1", i == "1", b == "1") }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: StateFlow<HomeUiState> = monthSelection
         .flatMapLatest { (y, m) ->
             combine(
                 container.recordRepository.observeMonth(y, m),
                 container.recordRepository.observeMonthSummary(y, m),
-                container.preferenceRepository.observe(PrefKeys.PRIVACY_MASKED),
+                homeMasks,
                 container.accountRepository.observeAll(),
                 container.recordRepository.observeMonthlySummaries(),
-            ) { records, summary, privacyPref, accounts, monthlies ->
+            ) { records, summary, masks, accounts, monthlies ->
                 val groups = groupByDay(records)
                 val daysInMonth = daysInMonth(y, m)
                 val daily = LongArray(daysInMonth)
@@ -68,7 +76,9 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
                     month = m,
                     dayGroups = groups,
                     summary = summary,
-                    privacyMasked = privacyPref == "1",
+                    maskHomeExpense = masks.expense,
+                    maskHomeIncome = masks.income,
+                    maskHomeBalance = masks.balance,
                     hasAccounts = accounts.isNotEmpty(),
                     dailyExpenseCents = daily.toList(),
                     todayIndex = todayIdx,
@@ -126,7 +136,15 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
     }
 }
 
+private data class HomeMasks(
+    val expense: Boolean,
+    val income: Boolean,
+    val balance: Boolean,
+)
+
 object PrefKeys {
-    const val PRIVACY_MASKED = "privacy_masked"
+    const val PRIVACY_HOME_EXPENSE = "privacy_home_expense"
+    const val PRIVACY_HOME_INCOME = "privacy_home_income"
+    const val PRIVACY_HOME_BALANCE = "privacy_home_balance"
     const val THEME_MODE = "theme_mode" // "system" | "light" | "dark"
 }
