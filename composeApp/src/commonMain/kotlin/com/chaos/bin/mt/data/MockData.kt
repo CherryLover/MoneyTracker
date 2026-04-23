@@ -132,13 +132,6 @@ object MockData {
         )),
     )
 
-    val autoRules: List<AutoRule> = listOf(
-        AutoRule(1, "房租", "每月 1 号 09:00", 4800, RecordType.Expense, "居家 · 房租", "招行储蓄", enabled = true),
-        AutoRule(2, "月薪", "每月 10 号 10:00", 18500, RecordType.Income, "工资 · 月薪", "招行储蓄", enabled = true),
-        AutoRule(3, "通勤地铁", "每周一至周五 09:00", 6, RecordType.Expense, "交通 · 地铁", "微信", enabled = true),
-        AutoRule(4, "设计课", "每月第 2 个周日 08:30", 299, RecordType.Expense, "学习 · 课程", "支付宝", enabled = false),
-    )
-
     fun sumMonth(): Triple<Int, Int, Int> {
         var exp = 0
         var inc = 0

@@ -2,6 +2,8 @@ package com.chaos.bin.mt.di
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.chaos.bin.mt.data.AccountRepository
+import com.chaos.bin.mt.data.AutoRuleRepository
+import com.chaos.bin.mt.data.AutoRuleScheduler
 import com.chaos.bin.mt.data.CategoryRepository
 import com.chaos.bin.mt.data.DefaultDataSeeder
 import com.chaos.bin.mt.data.PreferenceRepository
@@ -15,6 +17,11 @@ class AppContainer(val database: MtDatabase) {
     val accountRepository = AccountRepository(database)
     val recordRepository = RecordRepository(database)
     val preferenceRepository = PreferenceRepository(database)
+    val autoRuleRepository = AutoRuleRepository(database)
+    val autoRuleScheduler = AutoRuleScheduler(
+        autoRuleRepository = autoRuleRepository,
+        recordRepository = recordRepository,
+    )
     val seeder = DefaultDataSeeder(
         categoryRepository = categoryRepository,
         accountRepository = accountRepository,

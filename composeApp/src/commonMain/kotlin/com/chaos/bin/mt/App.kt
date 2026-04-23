@@ -21,6 +21,7 @@ fun App(container: AppContainer) {
 
     LaunchedEffect(container) {
         container.seeder.seedIfEmpty()
+        container.autoRuleScheduler.catchUp()
     }
 
     CompositionLocalProvider(LocalAppContainer provides container) {

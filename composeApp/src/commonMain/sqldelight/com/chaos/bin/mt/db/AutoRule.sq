@@ -1,6 +1,10 @@
 -- 自动记账规则
--- trigger_type: 0 = weekly, 1 = monthlyOnDay, 2 = monthlyNthWeekday
--- trigger_config: JSON blob（具体字段由客户端解释）
+-- trigger_type: 0 = weekly, 1 = monthlyDays, 2 = interval
+-- 根据 trigger_type 不同，只有对应列有值：
+--   weekly       -> trigger_weekdays (bit0=周日..bit6=周六)
+--   monthlyDays  -> trigger_month_days (bit0..bit30 对应 1..31 号)
+--   interval     -> trigger_interval_days (>= 1)
+-- 所有类型都需要 trigger_hour (0..23) + trigger_minute (0..59)
 CREATE TABLE AutoRule (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -11,7 +15,11 @@ CREATE TABLE AutoRule (
     account_id TEXT NOT NULL REFERENCES Account(id),
     note TEXT NOT NULL DEFAULT '',
     trigger_type INTEGER NOT NULL,
-    trigger_config TEXT NOT NULL,
+    trigger_weekdays INTEGER,
+    trigger_month_days INTEGER,
+    trigger_interval_days INTEGER,
+    trigger_hour INTEGER NOT NULL,
+    trigger_minute INTEGER NOT NULL,
     enabled INTEGER NOT NULL DEFAULT 1,
     last_fired_at INTEGER,
     created_at INTEGER NOT NULL,
@@ -28,8 +36,11 @@ selectById:
 SELECT * FROM AutoRule WHERE id = :id;
 
 insert:
-INSERT INTO AutoRule(name, kind, amount_cents, category_id, sub_category_id, account_id, note, trigger_type, trigger_config, enabled, last_fired_at, created_at, updated_at)
-VALUES (:name, :kind, :amount_cents, :category_id, :sub_category_id, :account_id, :note, :trigger_type, :trigger_config, :enabled, :last_fired_at, :created_at, :updated_at);
+INSERT INTO AutoRule(name, kind, amount_cents, category_id, sub_category_id, account_id, note, trigger_type, trigger_weekdays, trigger_month_days, trigger_interval_days, trigger_hour, trigger_minute, enabled, last_fired_at, created_at, updated_at)
+VALUES (:name, :kind, :amount_cents, :category_id, :sub_category_id, :account_id, :note, :trigger_type, :trigger_weekdays, :trigger_month_days, :trigger_interval_days, :trigger_hour, :trigger_minute, :enabled, :last_fired_at, :created_at, :updated_at);
+
+lastInsertRowId:
+SELECT last_insert_rowid();
 
 update:
 UPDATE AutoRule
@@ -41,7 +52,11 @@ SET name = :name,
     account_id = :account_id,
     note = :note,
     trigger_type = :trigger_type,
-    trigger_config = :trigger_config,
+    trigger_weekdays = :trigger_weekdays,
+    trigger_month_days = :trigger_month_days,
+    trigger_interval_days = :trigger_interval_days,
+    trigger_hour = :trigger_hour,
+    trigger_minute = :trigger_minute,
     enabled = :enabled,
     updated_at = :updated_at
 WHERE id = :id;

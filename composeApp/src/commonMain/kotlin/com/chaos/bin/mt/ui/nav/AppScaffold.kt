@@ -42,6 +42,7 @@ import com.chaos.bin.mt.ui.components.LineIcons
 import com.chaos.bin.mt.ui.entry.EntryScreen
 import com.chaos.bin.mt.ui.home.HomeScreen
 import com.chaos.bin.mt.ui.settings.AccountsScreen
+import com.chaos.bin.mt.ui.settings.AutomationEditScreen
 import com.chaos.bin.mt.ui.settings.AutomationScreen
 import com.chaos.bin.mt.ui.settings.CategoriesScreen
 import com.chaos.bin.mt.ui.settings.PrivacyScreen
@@ -194,7 +195,18 @@ private object AutomationScreenRoute : Screen {
     @Composable
     override fun Content() {
         val nav = LocalNavigator.currentOrThrow
-        AutomationScreen(onBack = { nav.pop() })
+        AutomationScreen(
+            onBack = { nav.pop() },
+            onEdit = { ruleId -> nav.push(AutomationEditRoute(ruleId)) },
+        )
+    }
+}
+
+private data class AutomationEditRoute(val ruleId: Long?) : Screen {
+    @Composable
+    override fun Content() {
+        val nav = LocalNavigator.currentOrThrow
+        AutomationEditScreen(ruleId = ruleId, onBack = { nav.pop() })
     }
 }
 
