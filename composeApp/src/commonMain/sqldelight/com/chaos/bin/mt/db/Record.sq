@@ -58,6 +58,33 @@ GROUP BY kind;
 selectAllStatsFields:
 SELECT occurred_at, kind, amount_cents FROM Record;
 
+-- 全量导出：一次性取出所有记录（含 JOIN 名称），按时间倒序
+selectAllDetailed:
+SELECT
+    r.id,
+    r.kind,
+    r.amount_cents,
+    r.category_id,
+    r.sub_category_id,
+    r.account_id,
+    r.note,
+    r.occurred_at,
+    r.privacy,
+    r.source,
+    r.auto_rule_id,
+    c.name AS category_name,
+    c.emoji AS category_emoji,
+    c.privacy AS category_privacy,
+    s.name AS sub_category_name,
+    s.privacy AS sub_category_privacy,
+    a.name AS account_name,
+    a.emoji AS account_emoji
+FROM Record r
+INNER JOIN Category c ON r.category_id = c.id
+LEFT JOIN SubCategory s ON r.sub_category_id = s.id
+INNER JOIN Account a ON r.account_id = a.id
+ORDER BY r.occurred_at DESC, r.id DESC;
+
 -- 判断某账户下是否还有记录，用于删除账户前的安全检查
 countByAccount:
 SELECT COUNT(*) FROM Record WHERE account_id = :account_id;

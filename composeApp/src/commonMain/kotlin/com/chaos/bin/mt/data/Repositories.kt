@@ -275,6 +275,11 @@ class RecordRepository(private val db: MtDatabase) {
         db.recordQueries.deleteById(id)
     }
 
+    /** 一次性拉出所有记录（导出 CSV 用），按时间倒序。 */
+    suspend fun getAll(): List<RecordDetail> = withContext(Dispatchers.Default) {
+        db.recordQueries.selectAllDetailed().executeAsList().map { it.toDomain() }
+    }
+
     suspend fun countByAccount(accountId: String): Long = withContext(Dispatchers.Default) {
         db.recordQueries.countByAccount(accountId).executeAsOne()
     }
@@ -355,6 +360,25 @@ class PreferenceRepository(private val db: MtDatabase) {
 
 /** SQLDelight 生成的投影行 → 领域类型。 */
 private fun com.chaos.bin.mt.db.SelectInRangeDetailed.toDomain(): RecordDetail = RecordDetail(
+    id = id,
+    kind = RecordKind.fromCode(kind.toInt()),
+    amountCents = amount_cents,
+    categoryId = category_id,
+    subCategoryId = sub_category_id,
+    accountId = account_id,
+    categoryName = category_name,
+    categoryEmoji = category_emoji,
+    categoryPrivacy = category_privacy != 0L,
+    subCategoryName = sub_category_name,
+    subCategoryPrivacy = (sub_category_privacy ?: 0L) != 0L,
+    accountName = account_name,
+    accountEmoji = account_emoji,
+    note = note,
+    occurredAt = Instant.fromEpochMilliseconds(occurred_at),
+    privacy = privacy != 0L,
+)
+
+private fun com.chaos.bin.mt.db.SelectAllDetailed.toDomain(): RecordDetail = RecordDetail(
     id = id,
     kind = RecordKind.fromCode(kind.toInt()),
     amountCents = amount_cents,
