@@ -1,5 +1,6 @@
 package com.chaos.bin.mt.ui.home
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -150,6 +152,7 @@ private fun HomeContent(
                         mask = rec.effectivePrivacy,
                         hasAccounts = state.hasAccounts,
                         onClick = { onRecordClick(rec) },
+                        modifier = Modifier.animateItem(),
                     )
                 }
             }
@@ -193,15 +196,17 @@ private fun MonthHeader(
             HSpace(8.dp)
             Icon(LineIcons.ChevD, null, tint = c.text3, modifier = Modifier.size(14.dp))
         }
-        if (!isOnCurrentMonth) {
-            HSpace(12.dp)
-            Box(
-                Modifier
-                    .background(c.subtle, RoundedCornerShape(999.dp))
-                    .clickableNoRipple(onBackToCurrent)
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-            ) {
-                Text("回本月", color = c.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        AnimatedVisibility(visible = !isOnCurrentMonth) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                HSpace(12.dp)
+                Box(
+                    Modifier
+                        .background(c.subtle, RoundedCornerShape(999.dp))
+                        .clickableNoRipple(onBackToCurrent)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                ) {
+                    Text("回本月", color = c.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                }
             }
         }
         Box(Modifier.weight(1f))
@@ -364,11 +369,12 @@ private fun DayHeader(day: DayGroup) {
 }
 
 @Composable
-private fun RecordRow(
+private fun LazyItemScope.RecordRow(
     rec: RecordDetail,
     mask: Boolean,
     hasAccounts: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val c = LocalAppColors.current
     val isIncome = rec.kind == RecordKind.Income
@@ -384,7 +390,7 @@ private fun RecordRow(
         "$hh:$mm"
     }
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .clickableNoRipple(onClick)
             .padding(horizontal = 20.dp, vertical = 12.dp),

@@ -1,5 +1,7 @@
 package com.chaos.bin.mt.ui.nav
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -31,11 +33,11 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import cafe.adriel.voyager.navigator.tab.CurrentTab
 import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabNavigator
 import cafe.adriel.voyager.navigator.tab.TabOptions
+import cafe.adriel.voyager.transitions.SlideTransition
 import com.chaos.bin.mt.theme.LocalAppColors
 import com.chaos.bin.mt.ui.components.Hairline
 import com.chaos.bin.mt.ui.components.LineIcons
@@ -52,7 +54,7 @@ import com.chaos.bin.mt.ui.settings.SettingsHomeScreen
 @Composable
 fun MainScaffold() {
     val c = LocalAppColors.current
-    TabNavigator(HomeTab) {
+    TabNavigator(HomeTab) { tabNav ->
         Column(
             Modifier
                 .fillMaxSize()
@@ -60,7 +62,14 @@ fun MainScaffold() {
                 .windowInsetsPadding(WindowInsets.statusBars),
         ) {
             Box(Modifier.fillMaxWidth().weight(1f)) {
-                CurrentTab()
+                Crossfade(
+                    targetState = tabNav.current,
+                    animationSpec = tween(durationMillis = 150),
+                ) { tab ->
+                    tabNav.saveableState("currentTab", tab) {
+                        tab.Content()
+                    }
+                }
             }
             Hairline()
             BottomTabBar()
@@ -154,7 +163,7 @@ object SettingsTab : Tab {
 
     @Composable
     override fun Content() {
-        Navigator(SettingsHomeScreenRoute)
+        Navigator(SettingsHomeScreenRoute) { SlideTransition(it) }
     }
 }
 
