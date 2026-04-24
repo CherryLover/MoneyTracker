@@ -5,7 +5,7 @@
 **优先级**: high  
 **负责人**: jiangjiwei  
 **创建时间**: 2026-04-21 17:22  
-**更新时间**: 2026-04-23  
+**更新时间**: 2026-04-24  
 **标签**: kmp, compose, sqldelight, voyager, money-tracker
 
 ## 背景
@@ -41,7 +41,13 @@
     - 不回补规则建立前的历史（新建时 `lastFiredAt = now`）；无上限
     - UI：列表页 + 新建/编辑共用页（Tab 切类型 + 动态配置区）
     - **推迟**：中国法定工作日 / 节假日触发类型（数据源需每年人工更新，先不做）
-- [ ] 五期：打磨 — 嵌入字体（Noto Sans SC/Inter）+ 空状态 UI + 过渡动画 + CSV/JSON 导入导出 + iCloud/Google Drive/本地备份 + 关键 VM/Repo 单元测试
+- [~] **五期：打磨**（进行中）
+    - [x] 空状态 UI（commit `9120727`）：首页 / 自动记账 / 账户列表三屏加 `EmptyState` 通用组件
+    - [x] 过渡动画（commit `dbb8440`）：设置 Tab SlideTransition + 底部 Tab Crossfade 150ms + 首页记录行 `animateItem()` + "回本月" chip AnimatedVisibility
+    - [x] CSV 导入导出（commit `8023414`）：RFC 4180 解析器 + 三端 expect/actual 文件 IO（JVM/Android 真实，iOS stub）+ Settings 双入口 + 20 条单测
+    - [ ] 嵌入字体（Noto Sans SC / Inter）
+    - [ ] iCloud / Google Drive / 本地备份
+    - [ ] 关键 VM / Repo 单元测试
 
 ## 当前进度（截至 2026-04-21）
 
@@ -152,7 +158,7 @@
 - [x] 二期：在设置里能新建/编辑/删除大类和小类、能拖拽排序、能独立管理账户；首页点任意记录能进详情并删除；能切换到任意月份
 - [x] 三期（精简）：`PrivacyScreen` 能切换任一大类的隐私标记，首页被标记大类的金额显示 ••••；首页支出 / 收入 / 结余三项各自有独立遮蔽开关
 - [x] 四期：能在设置里新建自动记账规则（每周 / 每月 / 每隔 N 天）；关掉 App 隔几天打开能看到自动生成的对应记录；不回补规则建立前的历史
-- [ ] 五期：字体嵌入后中英文数字视觉贴近原型；空状态有设计感；能导出/导入 CSV；能备份和恢复；关键 VM/Repo 有单元测试覆盖
+- [~] 五期（进行中）：空状态 UI ✅ / 过渡动画 ✅ / CSV 导入导出 ✅ / 嵌入字体 ❌ / 备份恢复 ❌ / 单元测试 ❌
 
 ## 参考资料
 - /tmp/moneytracker-handoff/untitled/project/app.html 设计原型入口
