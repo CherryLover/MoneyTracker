@@ -1,7 +1,10 @@
-TEAM_ID=
+TEAM_ID=E2R9X4F3GH
 
-PRODUCT_NAME=Mt
-PRODUCT_BUNDLE_IDENTIFIER=com.chaos.bin.mt.Mt$(TEAM_ID)
+PRODUCT_NAME=MoneyTracker
+PRODUCT_BUNDLE_IDENTIFIER=com.chaos.bin.moneytracker
 
 CURRENT_PROJECT_VERSION=1
 MARKETING_VERSION=1.0
+
+// SQLDelight (co.touchlab.sqliter) 需要链接系统 sqlite3
+OTHER_LDFLAGS = $(inherited) -lsqlite3

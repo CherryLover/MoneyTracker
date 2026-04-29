@@ -1,0 +1,121 @@
+name: MoneyTracker iOS Release (Fastlane)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: "发布说明（可选）"
+        required: false
+        type: string
+  # 推 v* 之类的 tag 才正式发版本
+  push:
+    tags:
+      - 'v*'
+  # PR 合并到 main 后自动打包发蒲公英；PR 关闭但未合并的不打包
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  build-ios:
+    runs-on: [self-hosted, macOS, ARM64, local-macos]
+    timeout-minutes: 60
+
+    env:
+      LC_ALL: en_US.UTF-8
+      LANG: en_US.UTF-8
+      CI: "true"
+      PGYER_API_KEY: ${{ secrets.PGYER_API_KEY }}
+      IOS_P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
+      IOS_P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
+      IOS_MOBILEPROVISION_BASE64: ${{ secrets.IOS_MOBILEPROVISION_BASE64 }}
+      IOS_MOBILEPROVISION_BASE64_GZ: ${{ secrets.IOS_MOBILEPROVISION_BASE64_GZ }}
+      IOS_PROVISIONING_PROFILE_NAME: ${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}
+      IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+      IOS_SIGNING_STYLE: ${{ secrets.IOS_SIGNING_STYLE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # 必须拉完整历史，build number 用 git rev-list --count HEAD 计算
+          fetch-depth: 0
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Ruby (use brew ruby@3.2 on self-hosted)
+        run: |
+          if [ ! -x /opt/homebrew/opt/ruby@3.2/bin/ruby ]; then
+            brew install ruby@3.2
+          fi
+          echo "/opt/homebrew/opt/ruby@3.2/bin" >> "$GITHUB_PATH"
+          /opt/homebrew/opt/ruby@3.2/bin/ruby -v
+          /opt/homebrew/opt/ruby@3.2/bin/bundle -v
+
+      - name: Bundle install
+        working-directory: iosApp
+        run: |
+          bundle config set path vendor/bundle
+          bundle install --jobs 4 --retry 3
+
+      - name: Verify required secrets
+        run: |
+          required_vars=(PGYER_API_KEY IOS_P12_BASE64 IOS_P12_PASSWORD IOS_PROVISIONING_PROFILE_NAME)
+          for v in "${required_vars[@]}"; do
+            if [ -z "${!v}" ]; then
+              echo "Missing required secret: $v"
+              exit 1
+            fi
+          done
+
+          if [ -z "$IOS_MOBILEPROVISION_BASE64" ] && [ -z "$IOS_MOBILEPROVISION_BASE64_GZ" ]; then
+            echo "Missing provisioning profile secret: IOS_MOBILEPROVISION_BASE64 or IOS_MOBILEPROVISION_BASE64_GZ"
+            exit 1
+          fi
+
+      - name: Build and upload to Pgyer (tag)
+        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
+        working-directory: iosApp
+        env:
+          RELEASE_NOTES: ${{ github.event.head_commit.message }}
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          if [ -z "$RELEASE_NOTES" ]; then
+            RELEASE_NOTES="Tag $TAG_NAME (build #${{ github.run_number }})"
+          else
+            RELEASE_NOTES="[$TAG_NAME] $RELEASE_NOTES"
+          fi
+          bundle exec fastlane ios release release_notes:"$RELEASE_NOTES"
+
+      - name: Build and upload to Pgyer (PR merged)
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true }}
+        working-directory: iosApp
+        env:
+          RELEASE_NOTES: "PR #${{ github.event.pull_request.number }} merged (${{ github.event.pull_request.head.ref }} -> ${{ github.event.pull_request.base.ref }}): ${{ github.event.pull_request.title }}"
+        run: |
+          bundle exec fastlane ios release release_notes:"$RELEASE_NOTES"
+
+      - name: Skip build for PR closed without merge
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == false }}
+        run: echo "PR #${{ github.event.pull_request.number }} closed without merging, skip build."
+
+      - name: Build and upload to Pgyer (manual)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        working-directory: iosApp
+        env:
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          if [ -z "$RELEASE_NOTES" ]; then
+            RELEASE_NOTES="Manual build #${{ github.run_number }}"
+          fi
+          bundle exec fastlane ios release release_notes:"$RELEASE_NOTES"

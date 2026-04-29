@@ -1,0 +1,273 @@
+# Fastfile for MoneyTracker iOS
+# 打包 IPA 并发布到蒲公英
+
+require 'base64'
+require 'shellwords'
+require 'stringio'
+require 'tmpdir'
+require 'securerandom'
+require 'zlib'
+
+default_platform(:ios)
+
+platform :ios do
+  SCHEME = "iosApp"
+  PRODUCT_NAME = "MoneyTracker"
+  APP_IDENTIFIER = "com.chaos.bin.moneytracker"
+
+  private_lane :build_update_description do |options|
+    git_branch = sh("git rev-parse --abbrev-ref HEAD", log: false).strip rescue "unknown"
+    git_commit = sh("git rev-parse --short HEAD", log: false).strip rescue "unknown"
+    build_time = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+    build_env = ENV['CI'] == 'true' ? 'CI 构建' : '本地构建'
+
+    update_desc = <<~DESC
+      📦 构建信息
+      • 分支: #{git_branch}
+      • Commit: #{git_commit}
+      • 时间: #{build_time}
+      • 环境: #{build_env}
+    DESC
+
+    user_notes = options[:release_notes]
+    if user_notes && !user_notes.empty?
+      update_desc += <<~DESC
+
+        📝 更新说明
+        #{user_notes}
+      DESC
+    end
+
+    update_desc
+  end
+
+  private_lane :build_signing_options do
+    cert_base64 = ENV["IOS_P12_BASE64"].to_s.strip
+    cert_password = ENV["IOS_P12_PASSWORD"].to_s
+    profile_base64 = ENV["IOS_MOBILEPROVISION_BASE64"].to_s.strip
+    profile_base64_gz = ENV["IOS_MOBILEPROVISION_BASE64_GZ"].to_s.strip
+    profile_name = ENV["IOS_PROVISIONING_PROFILE_NAME"].to_s.strip
+    signing_style = ENV["IOS_SIGNING_STYLE"].to_s.strip.downcase
+    team_id = ENV["IOS_TEAM_ID"].to_s.strip
+    team_id = ENV["TEAM_ID"].to_s.strip if team_id.empty?
+
+    managed_profile = profile_name.start_with?("iOS Team Provisioning Profile:")
+    if signing_style.empty?
+      signing_style = managed_profile ? "automatic" : "manual"
+    end
+
+    profile_raw = nil
+    if !profile_base64.empty?
+      profile_raw = Base64.decode64(profile_base64)
+    elsif !profile_base64_gz.empty?
+      gz_raw = Base64.decode64(profile_base64_gz)
+      profile_raw = Zlib::GzipReader.new(StringIO.new(gz_raw)).read
+    end
+
+    if cert_base64.empty? || profile_raw.nil?
+      if ENV['CI'] == 'true'
+        UI.user_error!("CI 环境必须设置 IOS_P12_BASE64，且设置 IOS_MOBILEPROVISION_BASE64 或 IOS_MOBILEPROVISION_BASE64_GZ")
+      end
+
+      UI.important("未配置 iOS 签名 Secrets，使用 Xcode 自动签名")
+      next({ export_xcargs: "-allowProvisioningUpdates" })
+    end
+
+    if cert_password.empty?
+      UI.user_error!("缺少 IOS_P12_PASSWORD")
+    end
+
+    if profile_name.empty?
+      UI.user_error!("缺少 IOS_PROVISIONING_PROFILE_NAME")
+    end
+
+    setup_ci if ENV['CI'] == 'true'
+
+    cert_path = File.join(Dir.tmpdir, "moneytracker_signing_cert.p12")
+    profile_path = File.join(Dir.tmpdir, "moneytracker_profile.mobileprovision")
+    File.binwrite(cert_path, Base64.decode64(cert_base64))
+    File.binwrite(profile_path, profile_raw)
+
+    keychain_name = ENV["IOS_KEYCHAIN_NAME"].to_s.strip
+    if keychain_name.empty?
+      run_id = ENV["GITHUB_RUN_ID"].to_s.strip
+      keychain_name = run_id.empty? ? "moneytracker_ci_keychain_local" : "moneytracker_ci_keychain_#{run_id}"
+    end
+
+    keychain_password = ENV["IOS_KEYCHAIN_PASSWORD"].to_s.strip
+    keychain_password = SecureRandom.hex(24) if keychain_password.empty?
+
+    begin
+      delete_keychain(name: keychain_name)
+    rescue StandardError
+      nil
+    end
+
+    # default_keychain: false 避免被控制中心反复弹密码框
+    # add_to_search_list: true 让 xcodebuild 自动签名时能在 keychain 列表里找到证书
+    create_keychain(
+      name: keychain_name,
+      password: keychain_password,
+      default_keychain: false,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false,
+      add_to_search_list: true
+    )
+
+    import_certificate(
+      certificate_path: cert_path,
+      certificate_password: cert_password,
+      keychain_name: keychain_name,
+      keychain_password: keychain_password
+    )
+
+    # macOS 10.12+ 必须显式给私钥加 partition list，否则 codesign 会因
+    # ACL 限制访问私钥失败，报 errSecInternalComponent
+    keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+    sh("security set-key-partition-list -S apple-tool:,apple: -s -k #{Shellwords.escape(keychain_password)} #{Shellwords.escape(keychain_path)} >/dev/null")
+
+    install_provisioning_profile(path: profile_path)
+
+    File.delete(cert_path) if File.exist?(cert_path)
+    File.delete(profile_path) if File.exist?(profile_path)
+
+    xcargs = []
+    export_options = {}
+
+    if signing_style == "automatic"
+      xcargs << "CODE_SIGN_STYLE=Automatic"
+      export_options[:signingStyle] = "automatic"
+      UI.message("使用 Automatic 签名模式（兼容 Xcode Managed Profile）")
+    else
+      xcargs << "CODE_SIGN_STYLE=Manual"
+      xcargs << "PROVISIONING_PROFILE_SPECIFIER=#{Shellwords.escape(profile_name)}"
+      export_options[:signingStyle] = "manual"
+      export_options[:provisioningProfiles] = {
+        APP_IDENTIFIER => profile_name
+      }
+      UI.message("使用 Manual 签名模式")
+    end
+
+    xcargs << "DEVELOPMENT_TEAM=#{team_id}" unless team_id.empty?
+    export_options[:teamID] = team_id unless team_id.empty?
+
+    # 不再传 OTHER_CODE_SIGN_FLAGS=--keychain：xcargs 转义会变成 --keychain\=
+    # 让 codesign 不识别。临时 keychain 已在 search list 里且 set-key-partition-list
+    # 已授权，codesign 会自动找到私钥。
+
+    UI.success("已通过 Secrets 安装证书与描述文件")
+
+    {
+      xcargs: xcargs.join(" "),
+      export_options: export_options
+    }
+  end
+
+  private_lane :build_ipa_artifact do
+    # 用 git commit 数作为 build number，保证每次 push 都是新版本
+    build_number = sh("git rev-list --count HEAD", log: false).strip rescue "1"
+    UI.message("CURRENT_PROJECT_VERSION = #{build_number} (git commit count)")
+
+    gradle_command = "./gradlew :composeApp:linkReleaseFrameworkIosArm64"
+    if ENV['CI'] == 'true'
+      gradle_command += " --no-daemon --max-workers=2"
+      gradle_command += " -Dorg.gradle.configuration-cache=false"
+      gradle_command += " -Dorg.gradle.jvmargs='-Xmx6144m -Dfile.encoding=UTF-8'"
+      gradle_command += " -Dkotlin.daemon.jvmargs='-Xmx4096m'"
+    end
+
+    sh("cd ../.. && #{gradle_command}")
+
+    signing_options = build_signing_options
+
+    gym_options = {
+      scheme: SCHEME,
+      clean: true,
+      export_method: "development",
+      output_directory: "../dist",
+      output_name: "#{PRODUCT_NAME}_#{Time.now.strftime('%Y%m%d%H%M%S')}"
+    }
+
+    if signing_options[:export_options]
+      gym_options[:export_options] = signing_options[:export_options]
+    end
+
+    if signing_options[:export_xcargs]
+      gym_options[:export_xcargs] = signing_options[:export_xcargs]
+    end
+
+    if signing_options[:xcargs]
+      gym_options[:xcargs] = "#{signing_options[:xcargs]} CURRENT_PROJECT_VERSION=#{build_number}"
+    else
+      gym_options[:xcargs] = "CURRENT_PROJECT_VERSION=#{build_number}"
+    end
+
+    gym(**gym_options)
+  end
+
+  desc "打包 IPA 并上传到蒲公英"
+  lane :release do |options|
+    update_desc = build_update_description(options)
+    build_ipa_artifact
+
+    api_key = ENV["PGYER_API_KEY"] || options[:api_key]
+    if api_key.nil? || api_key.empty?
+      UI.user_error!("请设置环境变量 PGYER_API_KEY 或传入 api_key 参数")
+    end
+
+    pgyer(
+      api_key: api_key,
+      update_description: update_desc
+    )
+  end
+
+  desc "仅打包 IPA (不上传)"
+  lane :build do |_options|
+    build_ipa_artifact
+
+    UI.success("IPA 打包完成: #{lane_context[SharedValues::IPA_OUTPUT_PATH]}")
+  end
+
+  desc "仅上传已有 IPA 到蒲公英"
+  lane :upload do |options|
+    ipa_path = options[:ipa]
+
+    if ipa_path.nil? || ipa_path.empty? || !File.exist?(ipa_path)
+      ipa_files = Dir.glob("../dist/*.ipa").sort_by { |f| File.mtime(f) }.reverse
+      if ipa_files.empty?
+        UI.user_error!("未找到 IPA 文件，请先运行 build lane 或指定 ipa 路径")
+      end
+      ipa_path = ipa_files.first
+      UI.message("使用最新的 IPA: #{ipa_path}")
+    end
+
+    api_key = ENV["PGYER_API_KEY"] || options[:api_key]
+    if api_key.nil? || api_key.empty?
+      UI.user_error!("请设置环境变量 PGYER_API_KEY 或传入 api_key 参数")
+    end
+
+    pgyer(
+      api_key: api_key,
+      ipa: ipa_path,
+      update_description: options[:release_notes] || "手动上传"
+    )
+  end
+
+  # 不论 lane 成功还是失败，都把临时 keychain 清理掉，避免在用户 mac 上
+  # 留下残留 + 控制中心反复弹钥匙串密码框
+  private_lane :cleanup_temp_keychains do
+    sh("security default-keychain -s \"$HOME/Library/Keychains/login.keychain-db\" || true")
+    sh("security list-keychains -s \"$HOME/Library/Keychains/login.keychain-db\" /Library/Keychains/System.keychain || true")
+    # 同时清掉本项目的 moneytracker_ci_keychain_* 和 fastlane 自带的 fastlane_tmp_keychain
+    sh("rm -f $HOME/Library/Keychains/moneytracker_ci_keychain_*-db $HOME/Library/Keychains/fastlane_tmp_keychain-db")
+  end
+
+  after_all do |lane|
+    cleanup_temp_keychains
+  end
+
+  error do |lane, exception|
+    cleanup_temp_keychains
+  end
+end

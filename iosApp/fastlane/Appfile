@@ -1,0 +1,8 @@
+# Appfile for MoneyTracker iOS
+
+app_identifier("com.chaos.bin.moneytracker")
+team_id("E2R9X4F3GH")
+
+# Apple Connect 相关（如需上传 App Store 可配置）
+# apple_id("your_apple_id@example.com")
+# itc_team_id("xxx")

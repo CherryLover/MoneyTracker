@@ -17,3 +17,11 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+
+# fastlane
+iosApp/vendor/
+iosApp/fastlane/.env
+iosApp/fastlane/report.xml
+iosApp/fastlane/test_output/
+iosApp/fastlane/README.md
+dist/
