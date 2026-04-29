@@ -8,6 +8,7 @@ import com.chaos.bin.mt.data.Category
 import com.chaos.bin.mt.data.RecordKind
 import com.chaos.bin.mt.data.SubCategory
 import com.chaos.bin.mt.data.nowInstant
+import com.chaos.bin.mt.data.nowMillis
 import com.chaos.bin.mt.di.AppContainer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -101,6 +102,35 @@ class EntryViewModel(private val container: AppContainer) : ViewModel() {
 
     fun selectSub(id: String) {
         draftFlow.update { it.copy(selectedSubCategoryId = id) }
+    }
+
+    /**
+     * 在当前选中的大类下快捷新增一个小类。
+     * - 没选大类 → 返回 null
+     * - trim 后同名的小类已存在 → 不重复插入，直接选中已有的并返回其 id
+     * - 否则插入新小类（隐私继承父大类、sortIndex = max(现有) + 1），选中并返回 newId
+     */
+    suspend fun quickAddSubCategory(name: String): String? {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return null
+        val s = state.value
+        val cat = s.currentCategory ?: return null
+        val existing = cat.subs.firstOrNull { it.name.trim() == trimmed }
+        if (existing != null) {
+            selectSub(existing.id)
+            return existing.id
+        }
+        val newId = "sub-${nowMillis()}"
+        // 与 CategoriesViewModel.addSub 一致：放在末尾，sort_index = 现有个数。
+        container.categoryRepository.insertSubCategory(
+            id = newId,
+            categoryId = cat.id,
+            name = trimmed,
+            privacy = cat.privacy,
+            sortIndex = cat.subs.size.toLong(),
+        )
+        selectSub(newId)
+        return newId
     }
 
     fun selectAccount(id: String) {

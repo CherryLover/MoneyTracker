@@ -23,13 +23,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -76,6 +82,7 @@ fun EntryScreen() {
         onKindChange = vm::setKind,
         onSelectCategory = vm::selectCategory,
         onSelectSub = vm::selectSub,
+        onQuickAddSub = vm::quickAddSubCategory,
         onSelectAccount = vm::selectAccount,
         onNoteChange = vm::setNote,
         onOccurredAtChange = vm::setOccurredAt,
@@ -100,6 +107,7 @@ private fun EntryContent(
     onKindChange: (RecordKind) -> Unit,
     onSelectCategory: (String) -> Unit,
     onSelectSub: (String) -> Unit,
+    onQuickAddSub: suspend (String) -> String?,
     onSelectAccount: (String) -> Unit,
     onNoteChange: (String) -> Unit,
     onOccurredAtChange: (Instant) -> Unit,
@@ -173,9 +181,11 @@ private fun EntryContent(
             )
             VSpace(4.dp)
             SubRow(
+                parentCategoryId = state.currentCategory?.id,
                 subs = state.currentCategory?.subs.orEmpty(),
                 activeId = state.selectedSubCategoryId,
                 onSelect = onSelectSub,
+                onQuickAdd = onQuickAddSub,
             )
             VSpace(4.dp)
             FieldBlock(
@@ -317,9 +327,11 @@ private fun CategoryGrid(
 
 @Composable
 private fun SubRow(
+    parentCategoryId: String?,
     subs: List<SubCategory>,
     activeId: String?,
     onSelect: (String) -> Unit,
+    onQuickAdd: suspend (String) -> String?,
 ) {
     val c = LocalAppColors.current
     LazyRow(
@@ -352,6 +364,155 @@ private fun SubRow(
                     fontSize = 14.sp,
                     fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
                 )
+            }
+        }
+        if (parentCategoryId != null) {
+            item(key = "add-sub-chip") {
+                AddSubChip(
+                    parentCategoryId = parentCategoryId,
+                    onAdd = onQuickAdd,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddSubChip(
+    parentCategoryId: String,
+    onAdd: suspend (String) -> String?,
+) {
+    val c = LocalAppColors.current
+    key(parentCategoryId) {
+        var editing by remember { mutableStateOf(false) }
+        var name by remember { mutableStateOf("") }
+        val scope = rememberCoroutineScope()
+        val focusRequester = remember { FocusRequester() }
+
+        if (!editing) {
+            Box(
+                Modifier
+                    .background(
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(999.dp),
+                    )
+                    .border(
+                        1.dp,
+                        color = c.text2,
+                        shape = RoundedCornerShape(999.dp),
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { editing = true },
+                    )
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    LineIcons.Plus,
+                    contentDescription = "添加小类",
+                    tint = c.text2,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        } else {
+            val trimmed = name.trim()
+            val canSubmit = trimmed.isNotEmpty()
+            Row(
+                Modifier
+                    .background(
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(999.dp),
+                    )
+                    .border(
+                        1.dp,
+                        color = c.accent,
+                        shape = RoundedCornerShape(999.dp),
+                    )
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.width(72.dp)) {
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = name,
+                        onValueChange = { input ->
+                            name = input
+                                .filter { ch -> ch != '\n' && ch != '\r' && ch != ' ' && ch != '　' }
+                                .take(10)
+                        },
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            color = c.text,
+                            fontSize = 14.sp,
+                        ),
+                        cursorBrush = androidx.compose.ui.graphics.SolidColor(c.accent),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                    )
+                    if (name.isEmpty()) {
+                        Text("新小类", color = c.text3, fontSize = 14.sp)
+                    }
+                }
+                LaunchedEffect(Unit) {
+                    focusRequester.requestFocus()
+                }
+                HSpace(6.dp)
+                Box(
+                    Modifier
+                        .size(22.dp)
+                        .background(
+                            color = if (canSubmit) c.accent else c.subtle,
+                            shape = CircleShape,
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            enabled = canSubmit,
+                            onClick = {
+                                val toSubmit = trimmed
+                                scope.launch {
+                                    onAdd(toSubmit)
+                                    editing = false
+                                    name = ""
+                                }
+                            },
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        LineIcons.Check,
+                        contentDescription = "确认",
+                        tint = if (canSubmit) c.accentText else c.text3,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+                HSpace(4.dp)
+                Box(
+                    Modifier
+                        .size(22.dp)
+                        .background(
+                            color = c.subtle,
+                            shape = CircleShape,
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {
+                                editing = false
+                                name = ""
+                            },
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        LineIcons.Close,
+                        contentDescription = "取消",
+                        tint = c.text2,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
             }
         }
     }
