@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,8 +25,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -42,6 +47,14 @@ fun TextEditDialog(
 ) {
     val c = LocalAppColors.current
     var text by rememberSaveable(initial) { mutableStateOf(initial) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    val submit: () -> Unit = {
+        keyboardController?.hide()
+        focusManager.clearFocus()
+        onConfirm(text)
+        onDismiss()
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Column(
@@ -65,6 +78,16 @@ fun TextEditDialog(
                     value = text,
                     onValueChange = { text = it },
                     singleLine = singleLine,
+                    keyboardOptions = if (singleLine) {
+                        KeyboardOptions(imeAction = ImeAction.Done)
+                    } else {
+                        KeyboardOptions.Default
+                    },
+                    keyboardActions = if (singleLine) {
+                        KeyboardActions(onDone = { submit() })
+                    } else {
+                        KeyboardActions.Default
+                    },
                     textStyle = TextStyle(color = c.text, fontSize = 16.sp),
                     cursorBrush = SolidColor(c.accent),
                     modifier = Modifier.fillMaxWidth(),

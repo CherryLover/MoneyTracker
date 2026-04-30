@@ -419,6 +419,20 @@ private fun AddSubChip(
         } else {
             val trimmed = name.trim()
             val canSubmit = trimmed.isNotEmpty()
+            val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+            val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+            val submit: () -> Unit = {
+                if (canSubmit) {
+                    val toSubmit = trimmed
+                    scope.launch {
+                        onAdd(toSubmit)
+                        editing = false
+                        name = ""
+                    }
+                }
+                keyboardController?.hide()
+                focusManager.clearFocus()
+            }
             Row(
                 Modifier
                     .background(
@@ -442,6 +456,12 @@ private fun AddSubChip(
                                 .take(10)
                         },
                         singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onDone = { submit() },
+                        ),
                         textStyle = androidx.compose.ui.text.TextStyle(
                             color = c.text,
                             fontSize = 14.sp,
@@ -470,14 +490,7 @@ private fun AddSubChip(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                             enabled = canSubmit,
-                            onClick = {
-                                val toSubmit = trimmed
-                                scope.launch {
-                                    onAdd(toSubmit)
-                                    editing = false
-                                    name = ""
-                                }
-                            },
+                            onClick = { submit() },
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -543,6 +556,8 @@ private fun FieldBlock(
 @Composable
 private fun NoteInlineField(value: String, onChange: (String) -> Unit) {
     val c = LocalAppColors.current
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -554,6 +569,15 @@ private fun NoteInlineField(value: String, onChange: (String) -> Unit) {
                 value = value,
                 onValueChange = onChange,
                 singleLine = true,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                ),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                    },
+                ),
                 textStyle = androidx.compose.ui.text.TextStyle(
                     color = c.text2,
                     fontSize = 14.sp,

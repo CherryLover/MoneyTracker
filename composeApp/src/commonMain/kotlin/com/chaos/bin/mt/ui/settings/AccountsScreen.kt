@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -34,8 +36,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -205,8 +210,18 @@ private fun AccountEditSheet(
     var name by remember { mutableStateOf(initialName) }
     var emoji by remember { mutableStateOf(initialEmoji) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     val isAddMode = account == null
+    val submit: () -> Unit = {
+        if (name.isNotBlank()) {
+            onSave(name, emoji)
+            onDismiss()
+        }
+        keyboardController?.hide()
+        focusManager.clearFocus()
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -253,6 +268,8 @@ private fun AccountEditSheet(
                         ),
                         cursorBrush = SolidColor(c.accent),
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submit() }),
                         decorationBox = { innerTextField ->
                             Box {
                                 if (name.isEmpty()) {
@@ -345,10 +362,7 @@ private fun AccountEditSheet(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = {
-                                onSave(name, emoji)
-                                onDismiss()
-                            },
+                            onClick = { submit() },
                         ),
                     contentAlignment = Alignment.Center,
                 ) {

@@ -22,6 +22,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -41,8 +43,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -391,6 +396,16 @@ private fun CategoryEditSheet(
     var name by remember { mutableStateOf(category?.name ?: "") }
     var emoji by remember { mutableStateOf(category?.emoji ?: "🏷️") }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    val submit: () -> Unit = {
+        if (name.isNotBlank()) {
+            onSave(name, emoji)
+            onDismiss()
+        }
+        keyboardController?.hide()
+        focusManager.clearFocus()
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -425,6 +440,8 @@ private fun CategoryEditSheet(
                         textStyle = TextStyle(color = c.text, fontSize = 16.sp),
                         cursorBrush = SolidColor(c.accent),
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submit() }),
                         decorationBox = { inner ->
                             Box {
                                 if (name.isEmpty()) Text("大类名称", color = c.text3, fontSize = 16.sp)
@@ -477,10 +494,7 @@ private fun CategoryEditSheet(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = {
-                                onSave(name, emoji)
-                                onDismiss()
-                            },
+                            onClick = { submit() },
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -533,6 +547,16 @@ private fun SubEditSheet(
     val isAddMode = sub == null
     var name by remember { mutableStateOf(sub?.name ?: "") }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    val submit: () -> Unit = {
+        if (name.isNotBlank()) {
+            onSave(name)
+            onDismiss()
+        }
+        keyboardController?.hide()
+        focusManager.clearFocus()
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -557,6 +581,8 @@ private fun SubEditSheet(
                     textStyle = TextStyle(color = c.text, fontSize = 16.sp),
                     cursorBrush = SolidColor(c.accent),
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
                     decorationBox = { inner ->
                         Box {
                             if (name.isEmpty()) Text("小类名称", color = c.text3, fontSize = 16.sp)
@@ -581,10 +607,7 @@ private fun SubEditSheet(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = {
-                                onSave(name)
-                                onDismiss()
-                            },
+                            onClick = { submit() },
                         ),
                     contentAlignment = Alignment.Center,
                 ) {

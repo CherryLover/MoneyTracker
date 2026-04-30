@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -35,8 +36,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -295,6 +299,8 @@ private fun InputField(
     onChange: (String) -> Unit,
 ) {
     val c = LocalAppColors.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     Box(
         Modifier
             .fillMaxWidth()
@@ -307,7 +313,16 @@ private fun InputField(
             value = value,
             onValueChange = onChange,
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboard),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = keyboard,
+                imeAction = ImeAction.Done,
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                },
+            ),
             textStyle = TextStyle(color = c.text, fontSize = 15.sp),
             cursorBrush = SolidColor(c.accent),
             modifier = Modifier.fillMaxWidth(),
