@@ -1,5 +1,8 @@
 package com.chaos.bin.mt.theme
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -68,5 +71,36 @@ val LocalAppColors = staticCompositionLocalOf<AppColors> { WarmLight }
 @Composable
 fun AppTheme(dark: Boolean, content: @Composable () -> Unit) {
     val colors = if (dark) WarmDark else WarmLight
-    CompositionLocalProvider(LocalAppColors provides colors, content = content)
+    val scheme = if (dark) {
+        darkColorScheme(
+            primary = colors.accent,
+            onPrimary = colors.accentText,
+            background = colors.bg,
+            onBackground = colors.text,
+            surface = colors.surface,
+            onSurface = colors.text,
+            surfaceVariant = colors.subtle,
+            onSurfaceVariant = colors.text2,
+            outline = colors.hairline,
+            error = colors.expense,
+            onError = colors.surface,
+        )
+    } else {
+        lightColorScheme(
+            primary = colors.accent,
+            onPrimary = colors.accentText,
+            background = colors.bg,
+            onBackground = colors.text,
+            surface = colors.surface,
+            onSurface = colors.text,
+            surfaceVariant = colors.subtle,
+            onSurfaceVariant = colors.text2,
+            outline = colors.hairline,
+            error = colors.expense,
+            onError = colors.surface,
+        )
+    }
+    MaterialTheme(colorScheme = scheme) {
+        CompositionLocalProvider(LocalAppColors provides colors, content = content)
+    }
 }

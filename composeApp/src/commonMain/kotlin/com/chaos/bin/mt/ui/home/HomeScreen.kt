@@ -1,6 +1,11 @@
 package com.chaos.bin.mt.ui.home
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -65,6 +70,7 @@ fun HomeScreen() {
         onRecordClick = { actionTarget = it },
         onMonthHeaderClick = { showMonthPicker = true },
         onBackToCurrent = { vm.selectMonth(state.todayYear, state.todayMonth) },
+        onReveal = { key -> vm.reveal(key) },
     )
 
     actionTarget?.let { target ->
@@ -107,6 +113,7 @@ private fun HomeContent(
     onRecordClick: (RecordDetail) -> Unit,
     onMonthHeaderClick: () -> Unit,
     onBackToCurrent: () -> Unit,
+    onReveal: (String) -> Unit,
 ) {
     val c = LocalAppColors.current
 
@@ -127,11 +134,14 @@ private fun HomeContent(
                 expenseCents = state.summary.expenseCents,
                 incomeCents = state.summary.incomeCents,
                 balanceCents = state.summary.balanceCents,
-                maskExpense = state.maskHomeExpense,
-                maskIncome = state.maskHomeIncome,
-                maskBalance = state.maskHomeBalance,
+                maskExpense = state.maskHomeExpense && SUMMARY_EXPENSE_KEY !in state.revealedKeys,
+                maskIncome = state.maskHomeIncome && SUMMARY_INCOME_KEY !in state.revealedKeys,
+                maskBalance = state.maskHomeBalance && SUMMARY_BALANCE_KEY !in state.revealedKeys,
                 dailyExpense = state.dailyExpenseCents,
                 todayIndex = state.todayIndex,
+                onRevealExpense = { onReveal(SUMMARY_EXPENSE_KEY) },
+                onRevealIncome = { onReveal(SUMMARY_INCOME_KEY) },
+                onRevealBalance = { onReveal(SUMMARY_BALANCE_KEY) },
             )
         }
 
@@ -147,11 +157,15 @@ private fun HomeContent(
             state.dayGroups.forEach { day ->
                 item(key = "header-${day.date}") { DayHeader(day = day) }
                 items(day.items, key = { it.id }) { rec ->
+                    val recordKey = "record:${rec.id}"
+                    val isMasked = (rec.effectivePrivacy) && recordKey !in state.revealedKeys
                     RecordRow(
                         rec = rec,
-                        mask = rec.effectivePrivacy,
+                        isMasked = isMasked,
                         hasAccounts = state.hasAccounts,
-                        onClick = { onRecordClick(rec) },
+                        onClick = {
+                            if (isMasked) onReveal(recordKey) else onRecordClick(rec)
+                        },
                         modifier = Modifier.animateItem(),
                     )
                 }
@@ -167,6 +181,10 @@ private fun HomeContent(
         }
     }
 }
+
+private const val SUMMARY_EXPENSE_KEY = "summary:expense"
+private const val SUMMARY_INCOME_KEY = "summary:income"
+private const val SUMMARY_BALANCE_KEY = "summary:balance"
 
 @Composable
 private fun MonthHeader(
@@ -236,6 +254,9 @@ private fun BoardWarm(
     maskBalance: Boolean,
     dailyExpense: List<Long>,
     todayIndex: Int,
+    onRevealExpense: () -> Unit,
+    onRevealIncome: () -> Unit,
+    onRevealBalance: () -> Unit,
 ) {
     val c = LocalAppColors.current
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)) {
@@ -252,12 +273,19 @@ private fun BoardWarm(
                 Box(Modifier.size(3.dp).background(c.accent, CircleShape))
             }
             VSpace(2.dp)
-            Text(
-                text = if (maskExpense) "¥•••••" else "¥" + formatYuan(expenseCents),
-                color = c.text,
-                fontSize = 46.sp,
-                fontWeight = FontWeight.Medium,
-            )
+            AnimatedContent(
+                targetState = maskExpense,
+                transitionSpec = { fadeIn(tween(100)) togetherWith fadeOut(tween(100)) },
+                label = "summary-expense",
+                modifier = Modifier.clickableNoRipple { if (maskExpense) onRevealExpense() },
+            ) { masked ->
+                Text(
+                    text = if (masked) "¥•••••" else "¥" + formatYuan(expenseCents),
+                    color = c.text,
+                    fontSize = 46.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
             VSpace(14.dp)
             MiniBarChart(daily = dailyExpense, todayIndex = todayIndex)
             VSpace(14.dp)
@@ -267,22 +295,36 @@ private fun BoardWarm(
                 Column(Modifier.weight(1f)) {
                     Text("收入", color = c.text2, fontSize = 13.sp)
                     VSpace(3.dp)
-                    Text(
-                        text = if (maskIncome) "¥•••" else "¥" + formatYuan(incomeCents),
-                        color = c.income,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    AnimatedContent(
+                        targetState = maskIncome,
+                        transitionSpec = { fadeIn(tween(100)) togetherWith fadeOut(tween(100)) },
+                        label = "summary-income",
+                        modifier = Modifier.clickableNoRipple { if (maskIncome) onRevealIncome() },
+                    ) { masked ->
+                        Text(
+                            text = if (masked) "¥•••" else "¥" + formatYuan(incomeCents),
+                            color = c.income,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("结余", color = c.text2, fontSize = 13.sp)
                     VSpace(3.dp)
-                    Text(
-                        text = if (maskBalance) "¥•••" else "¥" + formatYuan(balanceCents),
-                        color = c.text,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    AnimatedContent(
+                        targetState = maskBalance,
+                        transitionSpec = { fadeIn(tween(100)) togetherWith fadeOut(tween(100)) },
+                        label = "summary-balance",
+                        modifier = Modifier.clickableNoRipple { if (maskBalance) onRevealBalance() },
+                    ) { masked ->
+                        Text(
+                            text = if (masked) "¥•••" else "¥" + formatYuan(balanceCents),
+                            color = c.text,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 }
             }
         }
@@ -371,7 +413,7 @@ private fun DayHeader(day: DayGroup) {
 @Composable
 private fun LazyItemScope.RecordRow(
     rec: RecordDetail,
-    mask: Boolean,
+    isMasked: Boolean,
     hasAccounts: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -379,10 +421,6 @@ private fun LazyItemScope.RecordRow(
     val c = LocalAppColors.current
     val isIncome = rec.kind == RecordKind.Income
     val isPrivate = rec.effectivePrivacy
-    val amountStr = when {
-        mask || isPrivate -> "••••"
-        else -> (if (isIncome) "+" else "−") + formatYuan(rec.amountCents)
-    }
     val timeStr = run {
         val dt = rec.occurredAt.toLocalDateTime(com.chaos.bin.mt.data.AppTimeZone)
         val hh = dt.hour.toString().padStart(2, '0')
@@ -423,12 +461,19 @@ private fun LazyItemScope.RecordRow(
             )
         }
         HSpace(8.dp)
-        Text(
-            text = amountStr,
-            color = if (isIncome) c.income else c.expense,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
-        )
+        AnimatedContent(
+            targetState = isMasked,
+            transitionSpec = { fadeIn(tween(100)) togetherWith fadeOut(tween(100)) },
+            label = "record-amount",
+        ) { masked ->
+            Text(
+                text = if (masked) "••••"
+                else (if (isIncome) "+" else "−") + formatYuan(rec.amountCents),
+                color = if (isIncome) c.income else c.expense,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
     }
 }
 
