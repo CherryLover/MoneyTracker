@@ -247,6 +247,21 @@ object LineIcons {
         },
     ))
 
+    val Bell: ImageVector = multi("Bell", listOf(
+        MultiPath {
+            moveTo(18f, 16f)
+            verticalLineTo(10.8f)
+            arcTo(6f, 6f, 0f, false, false, 6f, 10.8f)
+            verticalLineTo(16f)
+            lineTo(4f, 18f)
+            horizontalLineTo(20f)
+            lineTo(18f, 16f)
+            close()
+        },
+        MultiPath { moveTo(9.5f, 20f); arcTo(2.5f, 2.5f, 0f, false, false, 14.5f, 20f) },
+        MultiPath { moveTo(10.5f, 5f); arcTo(1.5f, 1.5f, 0f, false, true, 13.5f, 5f) },
+    ))
+
     val Check: ImageVector = build(
         "Check",
         { moveTo(4f, 12f); lineTo(9f, 17f); lineTo(20f, 6f) },

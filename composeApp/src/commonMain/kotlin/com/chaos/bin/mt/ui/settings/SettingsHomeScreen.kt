@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chaos.bin.mt.data.CsvImportService
 import com.chaos.bin.mt.data.formatCsv
+import com.chaos.bin.mt.data.isReminderSupportedOnPlatform
 import com.chaos.bin.mt.data.nowInstant
 import com.chaos.bin.mt.data.rememberCsvFileAccess
 import com.chaos.bin.mt.di.LocalAppContainer
@@ -39,7 +40,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-enum class SettingsDest { Categories, Automation, Privacy, Accounts }
+enum class SettingsDest { Categories, Automation, Privacy, Accounts, Notifications }
 
 @Composable
 fun SettingsHomeScreen(onOpen: (SettingsDest) -> Unit) {
@@ -65,13 +66,17 @@ fun SettingsHomeScreen(onOpen: (SettingsDest) -> Unit) {
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
         )
 
+        val navItems = buildList {
+            add(Triple(LineIcons.Wallet, "账户管理", SettingsDest.Accounts) to "管理收支使用的账户")
+            add(Triple(LineIcons.Cog, "分类管理", SettingsDest.Categories) to "支出 / 收入 分类与小类")
+            add(Triple(LineIcons.Repeat, "自动记账", SettingsDest.Automation) to "定时规则自动生成记录")
+            if (isReminderSupportedOnPlatform) {
+                add(Triple(LineIcons.Bell, "通知提醒", SettingsDest.Notifications) to "每日记账提醒，最多 3 条")
+            }
+            add(Triple(LineIcons.Lock, "隐私保护", SettingsDest.Privacy) to "遮蔽金额、应用锁、截屏隐藏")
+        }
         NavGroup(
-            items = listOf(
-                Triple(LineIcons.Wallet, "账户管理", SettingsDest.Accounts) to "管理收支使用的账户",
-                Triple(LineIcons.Cog, "分类管理", SettingsDest.Categories) to "支出 / 收入 分类与小类",
-                Triple(LineIcons.Repeat, "自动记账", SettingsDest.Automation) to "定时规则自动生成记录",
-                Triple(LineIcons.Lock, "隐私保护", SettingsDest.Privacy) to "遮蔽金额、应用锁、截屏隐藏",
-            ),
+            items = navItems,
             onOpen = onOpen,
         )
 

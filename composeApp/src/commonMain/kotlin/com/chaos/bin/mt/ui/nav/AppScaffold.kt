@@ -47,6 +47,7 @@ import com.chaos.bin.mt.ui.settings.AccountsScreen
 import com.chaos.bin.mt.ui.settings.AutomationEditScreen
 import com.chaos.bin.mt.ui.settings.AutomationScreen
 import com.chaos.bin.mt.ui.settings.CategoriesScreen
+import com.chaos.bin.mt.ui.settings.NotificationsScreen
 import com.chaos.bin.mt.ui.settings.PrivacyScreen
 import com.chaos.bin.mt.ui.settings.SettingsDest
 import com.chaos.bin.mt.ui.settings.SettingsHomeScreen
@@ -178,6 +179,7 @@ private object SettingsHomeScreenRoute : Screen {
                     SettingsDest.Categories -> nav.push(CategoriesScreenRoute)
                     SettingsDest.Automation -> nav.push(AutomationScreenRoute)
                     SettingsDest.Privacy -> nav.push(PrivacyScreenRoute)
+                    SettingsDest.Notifications -> nav.push(NotificationsScreenRoute)
                 }
             },
         )
@@ -224,5 +226,13 @@ private object PrivacyScreenRoute : Screen {
     override fun Content() {
         val nav = LocalNavigator.currentOrThrow
         PrivacyScreen(onBack = { nav.pop() })
+    }
+}
+
+private object NotificationsScreenRoute : Screen {
+    @Composable
+    override fun Content() {
+        val nav = LocalNavigator.currentOrThrow
+        NotificationsScreen(onBack = { nav.pop() })
     }
 }

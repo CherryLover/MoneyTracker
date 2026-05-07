@@ -13,6 +13,7 @@ import com.chaos.bin.mt.di.LocalAppContainer
 import com.chaos.bin.mt.theme.AppTheme
 import com.chaos.bin.mt.theme.LocalAppColors
 import com.chaos.bin.mt.ui.nav.MainScaffold
+import com.chaos.bin.mt.data.isReminderSupportedOnPlatform
 
 @Composable
 @Preview
@@ -22,6 +23,9 @@ fun App(container: AppContainer) {
     LaunchedEffect(container) {
         container.seeder.seedIfEmpty()
         container.autoRuleScheduler.catchUp()
+        if (isReminderSupportedOnPlatform) {
+            container.notificationScheduler.rescheduleAll(container.reminderRepository.list())
+        }
     }
 
     CompositionLocalProvider(LocalAppContainer provides container) {

@@ -6,17 +6,25 @@ import com.chaos.bin.mt.data.AutoRuleRepository
 import com.chaos.bin.mt.data.AutoRuleScheduler
 import com.chaos.bin.mt.data.CategoryRepository
 import com.chaos.bin.mt.data.DefaultDataSeeder
+import com.chaos.bin.mt.data.NotificationPermission
+import com.chaos.bin.mt.data.NotificationScheduler
 import com.chaos.bin.mt.data.PreferenceRepository
 import com.chaos.bin.mt.data.RecordRepository
+import com.chaos.bin.mt.data.ReminderRepository
 import com.chaos.bin.mt.db.MtDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /** 按需在平台入口创建一次，所有 ViewModel / Repository 都由这里统一持有。 */
-class AppContainer(val database: MtDatabase) {
+class AppContainer(
+    val database: MtDatabase,
+    val notificationScheduler: NotificationScheduler,
+    val notificationPermission: NotificationPermission,
+) {
     val categoryRepository = CategoryRepository(database)
     val accountRepository = AccountRepository(database)
     val recordRepository = RecordRepository(database)
     val preferenceRepository = PreferenceRepository(database)
+    val reminderRepository = ReminderRepository(preferenceRepository)
     val autoRuleRepository = AutoRuleRepository(database)
     val autoRuleScheduler = AutoRuleScheduler(
         autoRuleRepository = autoRuleRepository,

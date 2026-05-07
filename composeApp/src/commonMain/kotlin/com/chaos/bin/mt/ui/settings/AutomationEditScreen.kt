@@ -54,6 +54,7 @@ import com.chaos.bin.mt.ui.components.AccountPickerSheet
 import com.chaos.bin.mt.ui.components.HSpace
 import com.chaos.bin.mt.ui.components.Hairline
 import com.chaos.bin.mt.ui.components.PageHeader
+import com.chaos.bin.mt.ui.components.TimeStepper
 import com.chaos.bin.mt.ui.components.TypeToggle
 import com.chaos.bin.mt.ui.components.VSpace
 
@@ -586,62 +587,6 @@ private fun IntervalStepper(value: Int, onChange: (Int) -> Unit) {
         }
         HSpace(10.dp)
         StepperButton("+") { onChange((value + 1).coerceAtMost(365)) }
-    }
-}
-
-@Composable
-private fun TimeStepper(hour: Int, minute: Int, onHour: (Int) -> Unit, onMinute: (Int) -> Unit) {
-    val c = LocalAppColors.current
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TimeColumn(
-            label = "时",
-            value = hour,
-            maxExclusive = 24,
-            onChange = onHour,
-        )
-        HSpace(10.dp)
-        Text(":", color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Medium)
-        HSpace(10.dp)
-        TimeColumn(
-            label = "分",
-            value = minute,
-            maxExclusive = 60,
-            onChange = onMinute,
-        )
-    }
-}
-
-@Composable
-private fun androidx.compose.foundation.layout.RowScope.TimeColumn(
-    label: String,
-    value: Int,
-    maxExclusive: Int,
-    onChange: (Int) -> Unit,
-) {
-    val c = LocalAppColors.current
-    Row(
-        Modifier
-            .weight(1f)
-            .background(c.surface, RoundedCornerShape(10.dp))
-            .border(1.dp, c.hairline, RoundedCornerShape(10.dp))
-            .padding(horizontal = 6.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        StepperButton("−") { onChange(((value - 1) + maxExclusive) % maxExclusive) }
-        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            Text(
-                value.toString().padStart(2, '0'),
-                color = c.text,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium,
-            )
-        }
-        StepperButton("+") { onChange((value + 1) % maxExclusive) }
     }
 }
 

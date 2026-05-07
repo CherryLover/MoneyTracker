@@ -38,6 +38,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import com.chaos.bin.mt.data.DayGroup
@@ -63,6 +65,10 @@ fun HomeScreen() {
     var showMonthPicker by remember { mutableStateOf(false) }
     val tabNavigator = LocalTabNavigator.current
 
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        vm.refreshNotificationPermission()
+    }
+
     HomeContent(
         state = state,
         onPrevMonth = { vm.shiftMonth(-1) },
@@ -71,6 +77,7 @@ fun HomeScreen() {
         onMonthHeaderClick = { showMonthPicker = true },
         onBackToCurrent = { vm.selectMonth(state.todayYear, state.todayMonth) },
         onReveal = { key -> vm.reveal(key) },
+        onOpenNotificationSettings = { container.notificationPermission.openAppSettings() },
     )
 
     actionTarget?.let { target ->
@@ -114,10 +121,16 @@ private fun HomeContent(
     onMonthHeaderClick: () -> Unit,
     onBackToCurrent: () -> Unit,
     onReveal: (String) -> Unit,
+    onOpenNotificationSettings: () -> Unit,
 ) {
     val c = LocalAppColors.current
 
     LazyColumn(Modifier.fillMaxSize().background(c.bg)) {
+        if (state.showReminderPermissionBanner) {
+            item {
+                ReminderPermissionBanner(onClick = onOpenNotificationSettings)
+            }
+        }
         item {
             MonthHeader(
                 year = state.year,
@@ -179,6 +192,30 @@ private fun HomeContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ReminderPermissionBanner(onClick: () -> Unit) {
+    val c = LocalAppColors.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .background(c.accent.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+            .border(1.dp, c.accent.copy(alpha = 0.28f), RoundedCornerShape(12.dp))
+            .clickableNoRipple(onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("⚠️", fontSize = 15.sp)
+        HSpace(8.dp)
+        Text(
+            "通知未开启，无法收到记账提醒。前往设置 →",
+            color = c.text2,
+            fontSize = 13.sp,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

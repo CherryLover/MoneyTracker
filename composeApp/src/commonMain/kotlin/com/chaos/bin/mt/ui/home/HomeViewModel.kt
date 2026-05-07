@@ -8,6 +8,7 @@ import com.chaos.bin.mt.data.DayGroup
 import com.chaos.bin.mt.data.MonthSummary
 import com.chaos.bin.mt.data.RecordDetail
 import com.chaos.bin.mt.data.RecordKind
+import com.chaos.bin.mt.data.isReminderSupportedOnPlatform
 import com.chaos.bin.mt.data.toLocalDate
 import com.chaos.bin.mt.di.AppContainer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,8 +46,12 @@ data class HomeUiState(
     val monthlySummaries: Map<Pair<Int, Int>, MonthSummary> = emptyMap(),
     /** 暂时被点击揭示的金额 key（5s 自动 re-mask）。 */
     val revealedKeys: Set<String> = emptySet(),
+    val hasEnabledReminder: Boolean = false,
+    val notificationPermissionGranted: Boolean = true,
 ) {
     val isOnCurrentMonth: Boolean get() = year == todayYear && month == todayMonth
+    val showReminderPermissionBanner: Boolean
+        get() = isReminderSupportedOnPlatform && hasEnabledReminder && !notificationPermissionGranted
 }
 
 class HomeViewModel(private val container: AppContainer) : ViewModel() {
@@ -62,20 +67,31 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
 
     private val revealedKeysFlow = MutableStateFlow<Set<String>>(emptySet())
     private val revealJobs = mutableMapOf<String, Job>()
+    private val notificationPermissionGranted = MutableStateFlow(true)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: StateFlow<HomeUiState> = monthSelection
         .flatMapLatest { (y, m) ->
-            val coreFlow = combine(
+            val baseFlow = combine(
                 liveMonthRecords(y, m),
                 container.recordRepository.observeMonthSummary(y, m),
                 homeMasks,
                 container.accountRepository.observeAll(),
                 container.recordRepository.observeMonthlySummaries(),
             ) { records, summary, masks, accounts, monthlies ->
-                CoreSnapshot(records, summary, masks, accounts.isNotEmpty(), monthlies)
+                CoreSnapshot(
+                    records = records,
+                    summary = summary,
+                    masks = masks,
+                    hasAccounts = accounts.isNotEmpty(),
+                    monthlies = monthlies,
+                    hasEnabledReminder = false,
+                )
             }
-            combine(coreFlow, revealedKeysFlow) { core, revealed ->
+            val coreFlow = combine(baseFlow, container.reminderRepository.observe()) { core, reminders ->
+                core.copy(hasEnabledReminder = reminders.any { it.enabled })
+            }
+            combine(coreFlow, revealedKeysFlow, notificationPermissionGranted) { core, revealed, permissionGranted ->
                 val records = core.records
                 val summary = core.summary
                 val masks = core.masks
@@ -104,6 +120,8 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
                     todayMonth = now.monthNumber,
                     monthlySummaries = monthlies,
                     revealedKeys = revealed,
+                    hasEnabledReminder = core.hasEnabledReminder,
+                    notificationPermissionGranted = permissionGranted,
                 )
             }
         }
@@ -160,6 +178,16 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
+    fun refreshNotificationPermission() {
+        if (!isReminderSupportedOnPlatform) {
+            notificationPermissionGranted.value = true
+            return
+        }
+        viewModelScope.launch {
+            notificationPermissionGranted.value = container.notificationPermission.isGranted()
+        }
+    }
+
     /**
      * 揭示一个被遮蔽的金额 5 秒。如果 key 已在揭示集合内，no-op（保留原有 5s 截止时刻）。
      */
@@ -207,6 +235,7 @@ private data class CoreSnapshot(
     val masks: HomeMasks,
     val hasAccounts: Boolean,
     val monthlies: Map<Pair<Int, Int>, MonthSummary>,
+    val hasEnabledReminder: Boolean,
 )
 
 object PrefKeys {
